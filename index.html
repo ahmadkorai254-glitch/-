@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahmad AI - مساعد أحمد الذكي</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --container-bg: #161616;
+            --accent-color: #cca43b;
+            --text-color: #ffffff;
+            --input-bg: #222222;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            margin: 0; 
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .chat-container { 
+            width: 100%;
+            max-width: 500px; 
+            background: var(--container-bg); 
+            border-radius: 16px; 
+            overflow: hidden; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+        .chat-header {
+            background: #1f1f1f;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #2a2a2a;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+        .chat-box { 
+            flex: 1;
+            padding: 15px; 
+            overflow-y: auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .bot-msg {
+            background-color: #242424;
+            align-self: flex-start;
+            border-bottom-right-radius: 4px;
+        }
+        .user-msg {
+            background-color: var(--accent-color);
+            color: #000000;
+            align-self: flex-end;
+            border-bottom-left-radius: 4px;
+            font-weight: 500;
+        }
+        .input-area { 
+            display: flex; 
+            padding: 12px; 
+            background: #1f1f1f;
+            border-top: 1px solid #2a2a2a;
+            gap: 8px;
+        }
+        .input-area input { 
+            flex: 1; 
+            padding: 12px; 
+            border: 1px solid #333; 
+            border-radius: 8px; 
+            outline: none; 
+            background: var(--input-bg);
+            color: #fff;
+            font-size: 1rem;
+        }
+        .input-area input:focus {
+            border-color: var(--accent-color);
+        }
+        .input-area button { 
+            padding: 0 20px; 
+            background: var(--accent-color); 
+            border: none; 
+            color: #000; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        .input-area button:hover {
+            background: #b38f32;
+        }
+        .insta-btn { 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px; 
+            padding: 12px 24px; 
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(220, 39, 67, 0.4);
+            transition: transform 0.2s;
+        }
+        .insta-btn:hover {
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">Ahmad AI ✨</div>
+    <div class="chat-box" id="chatBox">
+        <div class="message bot-msg">أهلاً بك! أنا مساعد أحمد الذكي المبني بالذكاء الاصطناعي. كيف يمكنني مساعدتك اليوم؟</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="اكتب رسالتك هنا..." autocomplete="off">
+        <button onclick="sendMessage()">إرسال</button>
+    </div>
+</div>
+
+<a href="https://instagram.com/luxury.cristal.pro" target="_blank" rel="noopener noreferrer" class="insta-btn">تابعني على انستغرام</a>
+
+<script>
+    // دالة لتنظيف النصوص وحماية الموقع من الاختراق (XSS Protection)
+    function escapeHTML(text) {
+        const div = document.createElement('div');
+        div.innerText = text;
+        return div.innerHTML;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('userInput');
+        const chatBox = document.getElementById('chatBox');
+        const rawValue = input.value.trim();
+        
+        if(rawValue !== "") {
+            const safeValue = escapeHTML(rawValue);
+            
+            // إضافة رسالة المستخدم
+            chatBox.innerHTML += `<div class="message user-msg">${safeValue}</div>`;
+            input.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // محاكاة رد الذكاء الاصطناعي الآمن
+            setTimeout(() => {
+                chatBox.innerHTML += `<div class="message bot-msg">أهلاً بك! هذا النموذج التجريبي يعمل بنجاح، وجاري ربط الخوادم المتقدمة للذكاء الاصطناعي قريباً جداً.</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 800);
+        }
+    }
+
+    // السماح بالإرسال عند الضغط على زر Enter في لوحة مفاتيح الهاتف
+    document.getElementById('userInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+  </html>
+  
