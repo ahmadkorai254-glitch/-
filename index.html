@@ -265,7 +265,6 @@
 
             const chatArea = document.getElementById('chatArea');
 
-            // 1. عرض رسالة المستخدم
             const userMsg = document.createElement('div');
             userMsg.className = 'message user';
             userMsg.innerText = text;
@@ -275,7 +274,6 @@
             sendBtn.disabled = true;
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            // 2. إنشاء رسالة انتظار (جاري التفكير...)
             const loadingMsg = document.createElement('div');
             loadingMsg.className = `message ai ${currentModel}-theme`;
             loadingMsg.innerText = "جاري الاتصال بالعقل المفكر... 🧠";
@@ -283,15 +281,15 @@
             chatArea.scrollTop = chatArea.scrollHeight;
 
             try {
-                // تحديد الموديل بناءً على اختيار المستخدم
-                const modelEndpoint = currentModel === 'gemini' ? 'gemini' : 'llama';
-                
-                // الاتصال بسيرفر ذكاء اصطناعي مفتوح ومجاني لمعالجة الطلب حقيقياً
-                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?model=${modelEndpoint}`);
+                // استخدام الموديل الافتراضي المباشر والمستقر لتجنب أخطاء الفلترة والأسماء القديمة
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}`);
                 const aiResponseText = await response.text();
 
-                // 3. استبدال نص الانتظار بالرد الذكي الحقيقي
-                loadingMsg.innerText = aiResponseText;
+                if (response.ok && aiResponseText) {
+                    loadingMsg.innerText = aiResponseText;
+                } else {
+                    loadingMsg.innerText = "أهلاً بك! تم استلام رسالتك بنجاح، السيرفر ممتلئ حالياً، يرجى المحاولة بعد قليل.";
+                }
             } catch (error) {
                 loadingMsg.innerText = "عذراً، واجهت مشكلة في الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.";
             } finally {
