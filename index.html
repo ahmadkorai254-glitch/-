@@ -281,17 +281,18 @@
             chatArea.scrollTop = chatArea.scrollHeight;
 
             try {
-                // استخدام الموديل الافتراضي المباشر والمستقر لتجنب أخطاء الفلترة والأسماء القديمة
-                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}`);
-                const aiResponseText = await response.text();
-
-                if (response.ok && aiResponseText) {
-                    loadingMsg.innerText = aiResponseText;
+                // الاتصال بنظام معالجة نصوص مباشر يتخطى إعلانات السيرفرات القديمة
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?json=true`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // عرض النص النظيف فقط بدون أي تنبيهات جانبية للمطورين
+                    loadingMsg.innerText = data.response || "تمت معالجة طلبك بنجاح!";
                 } else {
-                    loadingMsg.innerText = "أهلاً بك! تم استلام رسالتك بنجاح، السيرفر ممتلئ حالياً، يرجى المحاولة بعد قليل.";
+                    loadingMsg.innerText = "أهلاً بك! السيرفر مشغول حالياً ببعض الطلبات، يرجى إعادة إرسال السؤال بعد ثوانٍ قليلة.";
                 }
             } catch (error) {
-                loadingMsg.innerText = "عذراً، واجهت مشكلة في الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.";
+                loadingMsg.innerText = "عذراً، واجهت مشكلة مؤقتة في الشبكة. يرجى المحاولة مرة أخرى.";
             } finally {
                 sendBtn.disabled = false;
                 chatArea.scrollTop = chatArea.scrollHeight;
