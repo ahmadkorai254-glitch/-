@@ -124,6 +124,7 @@
             font-size: 0.95rem;
             line-height: 1.4;
             animation: scaleUp 0.3s ease;
+            white-space: pre-wrap;
         }
 
         @keyframes scaleUp {
@@ -198,8 +199,9 @@
             transition: transform 0.2s, background 0.2s;
         }
 
-        .send-btn:active {
-            transform: scale(0.92);
+        .send-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
         }
 
         .send-btn svg {
@@ -223,15 +225,15 @@
 
         <div class="chat-area" id="chatArea">
             <div class="message ai gemini-theme" id="welcomeMessage">
-                مرحباً بك! أنا مساعدك الذكي المدعوم بنموذج Gemini. كيف يمكنني مساعدتك اليوم؟
+                مرحباً بك! أنا مساعدك الذكي الحقيقي. اسألني أي شيء وسأجيبك بذكاء وفوراً!
             </div>
         </div>
 
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="text" class="chat-input" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
+                <input type="text" class="chat-input" id="chatInput" placeholder="اكتب سؤالك الذكي هنا..." onkeypress="handleKeyPress(event)">
             </div>
-            <button class="send-btn" onclick="sendMessage()">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                 <svg viewBox="0 0 24 24">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
@@ -250,45 +252,52 @@
             const chatArea = document.getElementById('chatArea');
             const systemMsg = document.createElement('div');
             systemMsg.className = `message ai ${model}-theme`;
-            
-            if(model === 'gemini') {
-                systemMsg.innerText = "تم التبديل إلى نموذج Gemini المتطور من جوجل.";
-            } else {
-                systemMsg.innerText = "تم التبديل إلى نموذج Claude الذكي من Anthropic.";
-            }
-            
+            systemMsg.innerText = `تم تنشيط عقل نموذج ${model === 'gemini' ? 'Gemini الحقيقي' : 'Claude المتطور'}. أنا جاهز للرد الفوري.`;
             chatArea.appendChild(systemMsg);
             chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
             const text = input.value.trim();
             if (!text) return;
 
             const chatArea = document.getElementById('chatArea');
 
+            // 1. عرض رسالة المستخدم
             const userMsg = document.createElement('div');
             userMsg.className = 'message user';
             userMsg.innerText = text;
             chatArea.appendChild(userMsg);
 
             input.value = '';
+            sendBtn.disabled = true;
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            setTimeout(() => {
-                const aiMsg = document.createElement('div');
-                aiMsg.className = `message ai ${currentModel}-theme`;
+            // 2. إنشاء رسالة انتظار (جاري التفكير...)
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = `message ai ${currentModel}-theme`;
+            loadingMsg.innerText = "جاري الاتصال بالعقل المفكر... 🧠";
+            chatArea.appendChild(loadingMsg);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            try {
+                // تحديد الموديل بناءً على اختيار المستخدم
+                const modelEndpoint = currentModel === 'gemini' ? 'gemini' : 'llama';
                 
-                if (currentModel === 'gemini') {
-                    aiMsg.innerText = `[رد محاكي لـ Gemini]: استقبلت رسالتك بخصوص "${text}". الواجهة المائية تعمل بنجاح!`;
-                } else {
-                    aiMsg.innerText = `[رد محاكي لـ Claude]: أهلاً بك، بصفتي نموذج Claude، يسعدني معالجة طلبك: "${text}" عبر هذه الواجهة الأنيقة.`;
-                }
-                
-                chatArea.appendChild(aiMsg);
+                // الاتصال بسيرفر ذكاء اصطناعي مفتوح ومجاني لمعالجة الطلب حقيقياً
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?model=${modelEndpoint}`);
+                const aiResponseText = await response.text();
+
+                // 3. استبدال نص الانتظار بالرد الذكي الحقيقي
+                loadingMsg.innerText = aiResponseText;
+            } catch (error) {
+                loadingMsg.innerText = "عذراً، واجهت مشكلة في الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.";
+            } finally {
+                sendBtn.disabled = false;
                 chatArea.scrollTop = chatArea.scrollHeight;
-            }, 800);
+            }
         }
 
         function handleKeyPress(event) {
