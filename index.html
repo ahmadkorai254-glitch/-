@@ -227,13 +227,13 @@
 
         <div class="chat-area" id="chatArea">
             <div class="message ai gemini-theme" id="welcomeMessage">
-                مرحباً بك! أنا مساعد أحمد الذكي. اسألني أي شيء (أسئلة عامة، برمجية، إبداعية) وسأجيبك فوراً وبذكاء كامل!
+                مرحباً بك! أنا مساعد أحمد الذكي الحقيقي. تم ربطي بخادمك الخاص بنجاح، اسألني أي شيء وسأجيبك بذكاء كامل!
             </div>
         </div>
 
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="text" class="chat-input" id="chatInput" placeholder="اكتب سؤالك الذكي هنا..." onkeypress="handleKeyPress(event)">
+                <input type="text" class="chat-input" id="chatInput" placeholder="اكتب سؤالك هنا..." onkeypress="handleKeyPress(event)">
             </div>
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                 <svg viewBox="0 0 24 24">
@@ -244,7 +244,10 @@
     </div>
 
     <script>
+        // رابط الـ Backend الخاص بك والمستخرج من معاينة تطبيقك
+        const BACKEND_API = "https://smart-chat-app-116.preview.emergentagent.com/api/chat";
         let currentModel = 'gemini';
+        let conversationId = null;
 
         function switchModel(model) {
             currentModel = model;
@@ -254,7 +257,7 @@
             const chatArea = document.getElementById('chatArea');
             const systemMsg = document.createElement('div');
             systemMsg.className = `message ai ${model}-theme`;
-            systemMsg.innerText = `تم تنشيط عقل نموذج ${model === 'gemini' ? 'Gemini 1.5 Pro' : 'Claude 3.5 Sonnet'}. أنا جاهز للإجابة الحقيقية المباشرة.`;
+            systemMsg.innerText = `تم تنشيط عقل نموذج ${model === 'gemini' ? 'Gemini 2.5 Pro' : 'Claude 4.5 Sonnet'} عبر خادمك الخاص.`;
             chatArea.appendChild(systemMsg);
             chatArea.scrollTop = chatArea.scrollHeight;
         }
@@ -280,27 +283,42 @@
             // رسالة جاري التفكير
             const loadingMsg = document.createElement('div');
             loadingMsg.className = `message ai ${currentModel}-theme`;
-            loadingMsg.innerText = "جاري صياغة الرد الذكي المباشر... 🧠✨";
+            loadingMsg.innerText = "جاري الاتصال بخادم أحمد والتحضير للرد... 🧠✨";
             chatArea.appendChild(loadingMsg);
             chatArea.scrollTop = chatArea.scrollHeight;
 
             try {
-                // تحديد الموديل بدقة وإرسال طلب مباشر لجلب النص الصافي فقط
-                const selectedModel = currentModel === 'gemini' ? 'gemini' : 'openai';
-                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?model=${selectedModel}&cache=false`);
+                // إرسال الطلب بنفس الصيغة الدقيقة التي يتوقعها الـ FastAPI في السيرفر الخاص بك
+                const response = await fetch(BACKEND_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId,
+                        text: text,
+                        model: currentModel,
+                        image_base64: null
+                    })
+                });
                 
                 if (response.ok) {
-                    const aiRawText = await response.text();
-                    if (aiRawText && aiRawText.trim().length > 0) {
-                        loadingMsg.innerText = aiRawText.trim();
+                    const data = await response.json();
+                    // حفظ الـ conversation_id لاستمرار سياق المحادثة وتذكر الأسئلة السابقة
+                    if (data.conversation_id) {
+                        conversationId = data.conversation_id;
+                    }
+                    // استخراج النص الصافي القادم من نموذج الذكاء الاصطناعي الحقيقي
+                    if (data.ai_message && data.ai_message.text) {
+                        loadingMsg.innerText = data.ai_message.text.trim();
                     } else {
-                        loadingMsg.innerText = "استقبلت طلبك ولكن الاستجابة فارغة، يرجى إعادة كتابة السؤال بشكل أوضح.";
+                        loadingMsg.innerText = "تم استلام استجابة غير معروفة من السيرفر الخاص بك.";
                     }
                 } else {
-                    loadingMsg.innerText = "النموذج ممتلئ بالطلبات حالياً، يرجى المحاولة مرة أخرى خلال ثوانٍ.";
+                    loadingMsg.innerText = "حدث خطأ أثناء الاتصال بالـ Backend الخاص بك. تأكد من أن السيرفر يعمل.";
                 }
             } catch (error) {
-                loadingMsg.innerText = "لم أتمكن من الاتصال بالسيرفر، يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.";
+                loadingMsg.innerText = "فشل الاتصال بالخادم الرئيسي، يرجى محاولة فتح التطبيق من السيرفر مرة أخرى للتحقق.";
             } finally {
                 sendBtn.disabled = false;
                 chatArea.scrollTop = chatArea.scrollHeight;
