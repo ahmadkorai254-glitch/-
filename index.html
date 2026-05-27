@@ -3,29 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luxury AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>ahmad AI</title>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f0f12 0%, #1a1a24 100%);
-            --panel-bg: rgba(30, 30, 42, 0.65);
-            --border-color: rgba(212, 175, 55, 0.2);
-            --gold-primary: #d4af37;
-            --gold-glow: #f3e5ab;
-            --text-main: #f5f5f7;
-            --text-muted: #a0a0b0;
+            --bg-gradient: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary-blue: #3b82f6;
+            --primary-orange: #f97316;
         }
 
-        /* تصفير الإعدادات وحل مشكلة الإطارات الزرقاء تماماً */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            /* منع ظهور الإطارات الزرقاء على الهواتف تماماً */
             -webkit-tap-highlight-color: transparent;
             outline: none !important;
         }
@@ -33,289 +29,535 @@
         body {
             background: var(--bg-gradient);
             color: var(--text-main);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
+            padding: 10px;
         }
 
-        /* حاوية التطبيق الرئيسية */
         .app-container {
             width: 100%;
-            max-width: 480 bounds;
-            height: 100vh;
-            background: rgba(15, 15, 18, 0.8);
-            border-left: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
+            max-width: 430px;
+            height: 880px;
+            max-height: 95vh;
+            background: #ffffff;
+            border-radius: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            overflow: hidden;
             position: relative;
         }
 
-        /* الشريط العلوي الاحترافي (Header) */
         .app-header {
             padding: 20px;
-            background: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-top {
+            width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 10;
+            margin-bottom: 15px;
         }
 
-        .brand-info {
+        .menu-btn, .new-chat-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main);
+            padding: 5px;
+        }
+
+        /* تنسيق زر تسجيل الدخول الأنيق في الهيدر */
+        .login-badge {
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        .login-badge.logged-in {
+            background: #e2fcd4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .app-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 6px;
         }
 
-        .brand-logo {
-            width: 40px;
-            height: 40px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
             border-radius: 50%;
-            border: 1px solid var(--gold-primary);
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-            object-fit: cover;
+            display: inline-block;
         }
 
-        .brand-name {
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #fff, var(--gold-primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-actions {
+        .model-selector {
             display: flex;
-            gap: 15px;
-            color: var(--gold-primary);
-            font-size: 18px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 20px;
+            gap: 5px;
+            width: 220px;
         }
 
-        .header-actions i {
+        .model-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
-        .header-actions i:active {
-            transform: scale(0.9);
+        .model-btn.active[data-model="gemini"] {
+            background: #ffffff;
+            color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        /* منطقة الرسائل والمحادثة */
+        .model-btn.active[data-model="claude"] {
+            background: #ffffff;
+            color: var(--primary-orange);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .model-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .gemini-dot { background-color: var(--primary-blue); }
+        .claude-dot { background-color: var(--primary-orange); }
+
         .chat-area {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            scroll-behavior: smooth;
+            background: #fafafa;
         }
 
-        /* تصميم فقاعات الرسائل زجاجي انسيابي */
-        .message {
-            max-width: 80%;
-            padding: 14px 18px;
+        .welcome-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-top: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .welcome-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #a5f3fc 0%, #cbd5e1 100%);
+            margin-bottom: 15px;
+            box-shadow: 0 10px 25px rgba(165, 243, 252, 0.4);
+        }
+
+        .welcome-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .welcome-subtext {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .suggestion-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
             border-radius: 20px;
-            font-size: 15px;
-            line-height: 1.6;
-            animation: fadeIn 0.3s ease-out;
+            padding: 16px;
+            text-align: right;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .suggestion-card:hover {
+            transform: translateY(-2px);
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        .card-icon {
+            font-size: 1.2rem;
+            color: var(--primary-blue);
+        }
+        .suggestion-card.orange .card-icon { color: var(--primary-orange); }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        @keyframes scaleUp {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
         .message.user {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(184, 134, 11, 0.15) 100%);
-            border: 1px solid rgba(212, 175, 55, 0.3);
+            background: #f1f5f9;
+            color: var(--text-main);
             align-self: flex-start;
-            border-top-right-radius: 4px;
-            color: #fff;
+            border-bottom-right-radius: 4px;
         }
 
         .message.ai {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            color: var(--text-main);
             align-self: flex-end;
-            border-top-left-radius: 4px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid var(--border-color);
         }
 
-        /* صندوق الإدخال السفلي الفخم */
-        .input-area {
-            padding: 20px;
-            background: var(--panel-bg);
+        /* تنسيق معاينة الوسائط المرفوعة داخل الرسالة */
+        .message-media {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            margin-top: 8px;
+            display: block;
+        }
+
+        /* شريط المعاينة فوق صندوق المدخلات */
+        .preview-box {
+            display: none;
+            padding: 8px 12px;
+            background: #f8fafc;
             border-top: 1px solid var(--border-color);
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .preview-box span {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-container {
+            padding: 10px 20px 25px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
         }
 
         .input-wrapper {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            padding: 6px 12px;
             display: flex;
             align-items: center;
-            background: rgba(20, 20, 28, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 6px 14px;
-            transition: border-color 0.3s;
+            gap: 10px;
         }
 
-        .input-wrapper:focus-within {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+        .action-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .action-icon:hover {
+            color: var(--text-main);
+        }
+
+        /* تأثير التنشيط لزر الميكروفون عند التسجيل */
+        .action-icon.recording {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
 
         .chat-input {
             flex: 1;
+            padding: 10px 4px;
             background: transparent;
             border: none;
             color: var(--text-main);
-            font-size: 15px;
-            padding: 10px;
+            font-size: 0.95rem;
+            outline: none;
         }
 
         .chat-input::placeholder {
-            color: var(--text-muted);
+            color: #94a3b8;
         }
 
-        .action-btn {
-            background: transparent;
+        .send-btn {
+            background: #94a3b8;
             border: none;
-            color: var(--text-muted);
-            font-size: 18px;
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
 
-        .action-btn:hover {
-            color: var(--gold-primary);
+        .send-btn.active {
+            background: #0f172a;
         }
 
-        .send-btn {
-            background: var(--gold-primary);
-            color: #101014;
-        }
-
-        .send-btn:hover {
-            background: var(--gold-glow);
-            color: #101014;
-            transform: scale(1.05);
-        }
-
-        /* شريط سفلي للأزرار السريعة (تحليل، ميزات، إعدادات) */
-        .quick-features {
-            display: flex;
-            justify-content: space-around;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .feature-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-
-        .feature-item i {
-            font-size: 16px;
-            color: var(--gold-primary);
-        }
-
-        /* إخفاء شريط التمرير الافتراضي المزعج */
-        .chat-area::-webkit-scrollbar {
-            width: 4px;
-        }
-        .chat-area::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 10px;
+        .send-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #ffffff;
+            transform: rotate(180deg);
         }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <header class="app-header">
-            <div class="brand-info">
-                <img src="https://ahmadkorai254-glitch.github.io/-/876.png" class="brand-logo" alt="Logo">
-                <span class="brand-name">Luxury AI</span>
-            </div>
-            <div class="header-actions">
-                <i class="fas fa-palette" title="سمة التطبيق"></i>
-                <i class="fas fa-cog" title="الإعدادات"></i>
-            </div>
-        </header>
-
-        <main class="chat-area" id="chatArea">
-            <div class="message ai">
-                مرحباً بك يا أحمد في <b>Luxury AI</b> الملكي ✨. كيف يمكنني مساعدتك اليوم؟ يمكنك تجربة كتابة رسالة أو اختبار الميزات الفاخرة بالأسفل.
-            </div>
-        </main>
-
-        <footer class="input-area">
-            <div class="input-wrapper">
-                <button class="action-btn" title="رفع صورة"><i class="fas fa-image"></i></button>
-                <button class="action-btn" title="تسجيل صوتي"><i class="fas fa-microphone"></i></button>
-                
-                <input type="text" class="chat-input" id="userInput" placeholder="اكتب رسالتك الذكية هنا...">
-                
-                <button class="action-btn send-btn" id="sendBtn"><i class="fas fa-paper-plane-vertical"></i></button>
+        <div class="app-header">
+            <div class="header-top">
+                <div class="login-badge" id="loginBtn" onclick="handleLogin()">تسجيل الدخول</div>
+                <div class="app-title">ahmad AI <span class="status-dot"></span></div>
+                <button class="new-chat-btn" onclick="resetToHome()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+                </button>
             </div>
             
-            <div class="quick-features">
-                <div class="feature-item"><i class="fas fa-user-shield"></i><span>تسجيل الدخول</span></div>
-                <div class="feature-item"><i class="fas fa-wand-magic-sparkles"></i><span>تحليل الصور</span></div>
-                <div class="feature-item"><i class="fas fa-volume-high"></i><span>صوت نقي</span></div>
+            <div class="model-selector">
+                <button class="model-btn" data-model="claude" onclick="switchModel('claude')">
+                    <span class="model-dot claude-dot"></span> Claude
+                </button>
+                <button class="model-btn active" data-model="gemini" onclick="switchModel('gemini')">
+                    <span class="model-dot gemini-dot"></span> Gemini
+                </button>
             </div>
-        </footer>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-container" id="welcomeSection">
+                <div class="welcome-avatar"></div>
+                <h2 class="welcome-text">مرحباً بك في ahmad AI</h2>
+                <p class="welcome-subtext">اسأل أي شيء – نصوص، برمجة، أو استفسارات ذكية</p>
+                
+                <div class="suggestions-grid">
+                    <div class="suggestion-card" onclick="useSuggestion('اكتب كود دالة لفحص رقم أولي بـ Python')">
+                        <span class="card-icon">&lt;/&gt;</span>
+                        <h4 class="card-title">اكتب كود</h4>
+                        <p class="card-desc">دالة لفحص رقم أولي بـ Python</p>
+                    </div>
+                    <div class="suggestion-card orange" onclick="useSuggestion('أعطني نصيحة برمجية لتطوير مهاراتي اليوم')">
+                        <span class="card-icon">💡</span>
+                        <h4 class="card-title">نصيحة ذكية</h4>
+                        <p class="card-desc">كيف أطور مهاراتي البرمجية؟</p>
+                    </div>
+                    <div class="suggestion-card orange" onclick="useSuggestion('ما الفرق بين REST و GraphQL؟')">
+                        <span class="card-icon">🧠</span>
+                        <h4 class="card-title">اشرح فكرة</h4>
+                        <p class="card-desc">ما الفرق بين REST و GraphQL؟</p>
+                    </div>
+                    <div class="suggestion-card" onclick="useSuggestion('ترجم هذه الفقرة من العربية إلى الإنجليزية')">
+                        <span class="card-icon">文</span>
+                        <h4 class="card-title">ترجم نص</h4>
+                        <p class="card-desc">ترجم فقرة من العربية إلى الإنجليزية</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-box" id="previewBox">
+            <span id="previewText"></span>
+            <span style="cursor:pointer; font-weight:bold; color:#ef4444;" onclick="clearAttachment()">✕</span>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <button class="action-icon" onclick="document.getElementById('fileInput').click()" title="رفع صور وفيديو">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </button>
+                <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;" onchange="handleFileSelect(event)">
+
+                <button class="action-icon" id="micBtn" onclick="toggleAudioRecording()" title="تسجيل صوتي">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v11a4 4 0 0 0 4-4V1z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                
+                <input type="text" class="chat-input" id="chatInput" placeholder="...اكتب رسالتك" oninput="toggleSendBtn()" onkeypress="handleKeyPress(event)">
+                
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const chatArea = document.getElementById('chatArea');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
+        let currentModel = 'gemini';
+        let attachedFileData = null;
+        let attachedFileType = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isLoggedIn = false;
 
-        function sendMessage() {
-            const text = userInput.value.trim();
-            if (text === '') return;
-
-            // رسالة المستخدم
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user';
-            userDiv.textContent = text;
-            chatArea.appendChild(userDiv);
-            
-            userInput.value = '';
-            chatArea.scrollTop = chatArea.scrollHeight;
-
-            // محاكاة استجابة الذكاء الاصطناعي الأنيقة
-            setTimeout(() => {
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'message ai';
-                aiDiv.innerHTML = `تم استلام أمرك الفاخر: <b>"${text}"</b>. جاري معالجة طلبك عبر الخوادم الذكية...`;
-                chatArea.appendChild(aiDiv);
-                chatArea.scrollTop = chatArea.scrollHeight;
-            }, 800);
+        function toggleSendBtn() {
+            const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
+            if (input.value.trim().length > 0 || attachedFileData) {
+                sendBtn.classList.add('active');
+            } else {
+                sendBtn.classList.remove('active');
+            }
         }
 
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-    </script>
-</body>
-</html>
+        function switchModel(model) {
+            currentModel = model;
+            document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.model-btn[data-model="${model}"]`).classList.add('active');
+        }
+
+        function useSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            toggleSendBtn();
+            sendMessage();
+        }
+
+        function resetToHome() {
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML = `
+                <div class="welcome-container" id="welcomeSection">
+                    <div class="welcome-avatar"></div>
+                    <h2 class="welcome-text">مرحباً بك في ahmad AI</h2>
+                    <p class="welcome-subtext">اسأل أي شيء – نصوص، برمجة، أو استفسارات ذكية</p>
+                    <div class="suggestions-grid">
+                        <div class="suggestion-card" onclick="useSuggestion('اكتب كود دالة لفحص رقم أولي بـ Python')"><span class="card-icon">&lt;/&gt;</span><h4 class="card-title">اكتب كود</h4><p class="card-desc">دالة لفحص رقم أولي بـ Python</p></div>
+                        <div class="suggestion-card orange" onclick="useSuggestion('أعطني نصيحة برمجية لتطوير مهاراتي اليوم')"><span class="card-icon">💡</span><h4 class="card-title">نصيحة ذكية</h4><p class="card-desc">كيف أطور مهاراتي البرمجية؟</p></div>
+                        <div class="suggestion-card orange" onclick="useSuggestion('ما الفرق بين REST و GraphQL؟')"><span class="card-icon">🧠</span><h4 class="card-title">اشرح فكرة</h4><p class="card-desc">ما الفرق بين REST و GraphQL؟</p></div>
+                        <div class="suggestion-card" onclick="useSuggestion('ترجم هذه الفقرة من العربية إلى الإنجليزية')"><span class="card-icon">文</span><h4 class="card-title">ترجم نص</h4><p class="card-desc">ترجم فقرة من العربية إلى الإنجليزية</p></div>
+                    </div>
+                </div>`;
+            clearAttachment();
+        }
+
+        // 1️⃣ دالة إدارة تسجيل الدخول (Authentication) بدون نوافذ مشوهة
+        function handleLogin() {
+            const loginBtn = document.getElementById('loginBtn');
+            if (!isLoggedIn) {
+                let username = prompt("الرجاء إدخال اسم المستخدم لتسجيل الدخول:");
+                if (username && username.trim() !== "") {
+                    isLoggedIn = true;
+                    loginBtn.innerText = `أهلاً، ${username.trim()}`;
+                    loginBtn.classList.add('logged-in');
+                }
+            } else {
+                if (confirm("هل تريد تسجيل الخروج؟")) {
+                    isLoggedIn = false;
+                    loginBtn.innerText = "تسجيل الدخول";
+                    loginBtn.classList.remove('logged-in');
+                }
+            }
+        }
+
+        // 2️⃣ دالة قراءة ومعالجة الصور والفيديو
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            attachedFileType = file.type;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                attachedFileData = e.target.result;
+                const previewBox = document.getElementById('previewBox');
+                const previewText = document.getElementById('previewText');
+                
+                previewBox.style.display = 'flex';
+                previewText.innerText = file.type.startsWith('image/') ? `🖼️ تم تجهيز الصورة: ${file.name}` : `🎥 تم تجهيز الفيديو: ${file.name}`;
+                toggleSendBtn();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearAttachment() {
+            attachedFileData = null;
+            attachedFileType = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('previewBox').style.style.display = 'none';
+            toggleSendBtn();
+        }
+
+        // 3️⃣ دالة تسجيل الصو
