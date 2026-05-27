@@ -3,501 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ahmad AI</title>
+    <title>Luxury AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
-            --bg-gradient: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --primary-blue: #3b82f6;
-            --primary-orange: #f97316;
+            --bg-gradient: linear-gradient(135deg, #0f0f12 0%, #1a1a24 100%);
+            --panel-bg: rgba(30, 30, 42, 0.65);
+            --border-color: rgba(212, 175, 55, 0.2);
+            --gold-primary: #d4af37;
+            --gold-glow: #f3e5ab;
+            --text-main: #f5f5f7;
+            --text-muted: #a0a0b0;
         }
 
+        /* تصفير الإعدادات وحل مشكلة الإطارات الزرقاء تماماً */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
+            font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            outline: none !important;
         }
 
         body {
             background: var(--bg-gradient);
             color: var(--text-main);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            overflow: hidden;
         }
 
+        /* حاوية التطبيق الرئيسية */
         .app-container {
             width: 100%;
-            max-width: 430px;
-            height: 880px;
-            max-height: 95vh;
-            background: #ffffff;
-            border-radius: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border-color);
+            max-width: 480 bounds;
+            height: 100vh;
+            background: rgba(15, 15, 18, 0.8);
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: relative;
         }
 
+        /* الشريط العلوي الاحترافي (Header) */
         .app-header {
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background: var(--panel-bg);
             border-bottom: 1px solid var(--border-color);
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-        }
-
-        .header-top {
-            width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            z-index: 10;
         }
 
-        .menu-btn, .new-chat-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            color: var(--text-main);
-            padding: 5px;
+        .brand-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .app-title {
-            font-size: 1.3rem;
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--gold-primary);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+            object-fit: cover;
+        }
+
+        .brand-name {
+            font-size: 18px;
             font-weight: 700;
-            color: #0f172a;
+            background: linear-gradient(90deg, #fff, var(--gold-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
             display: flex;
-            align-items: center;
-            gap: 6px;
+            gap: 15px;
+            color: var(--gold-primary);
+            font-size: 18px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #22c55e;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .model-selector {
-            display: flex;
-            background: #f1f5f9;
-            padding: 4px;
-            border-radius: 20px;
-            gap: 5px;
-            width: 220px;
-        }
-
-        .model-btn {
-            flex: 1;
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            font-weight: 600;
+        .header-actions i {
             cursor: pointer;
-            border-radius: 16px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
+            transition: transform 0.2s;
         }
 
-        .model-btn.active[data-model="gemini"] {
-            background: #ffffff;
-            color: var(--primary-blue);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        .header-actions i:active {
+            transform: scale(0.9);
         }
 
-        .model-btn.active[data-model="claude"] {
-            background: #ffffff;
-            color: var(--primary-orange);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .model-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-        .gemini-dot { background-color: var(--primary-blue); }
-        .claude-dot { background-color: var(--primary-orange); }
-
+        /* منطقة الرسائل والمحادثة */
         .chat-area {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            background: #fafafa;
+            gap: 16px;
+            scroll-behavior: smooth;
         }
 
-        .welcome-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            margin-top: 20px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .welcome-avatar {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #a5f3fc 0%, #cbd5e1 100%);
-            margin-bottom: 15px;
-            box-shadow: 0 10px 25px rgba(165, 243, 252, 0.4);
-        }
-
-        .welcome-text {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 6px;
-        }
-
-        .welcome-subtext {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            margin-bottom: 30px;
-        }
-
-        .suggestions-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            width: 100%;
-            max-width: 380px;
-        }
-
-        .suggestion-card {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 16px;
-            text-align: right;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .suggestion-card:hover {
-            transform: translateY(-2px);
-            border-color: #cbd5e1;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-        }
-
-        .card-icon {
-            font-size: 1.2rem;
-            color: var(--primary-blue);
-        }
-        .suggestion-card.orange .card-icon { color: var(--primary-orange); }
-
-        .card-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .card-desc {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.3;
-        }
-
+        /* تصميم فقاعات الرسائل زجاجي انسيابي */
         .message {
-            max-width: 85%;
-            padding: 12px 16px;
+            max-width: 80%;
+            padding: 14px 18px;
             border-radius: 20px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 12px;
-            animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            white-space: pre-wrap;
-            word-break: break-word;
+            font-size: 15px;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        @keyframes scaleUp {
-            from { transform: scale(0.96); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.user {
-            background: #f1f5f9;
-            color: var(--text-main);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(184, 134, 11, 0.15) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.3);
             align-self: flex-start;
-            border-bottom-right-radius: 4px;
+            border-top-right-radius: 4px;
+            color: #fff;
         }
 
         .message.ai {
-            background: #ffffff;
-            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             align-self: flex-end;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            border: 1px solid var(--border-color);
+            border-top-left-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        .input-container {
-            padding: 15px 20px 25px;
-            background: #ffffff;
+        /* صندوق الإدخال السفلي الفخم */
+        .input-area {
+            padding: 20px;
+            background: var(--panel-bg);
             border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .input-wrapper {
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 28px;
-            padding: 6px 12px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            background: rgba(20, 20, 28, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 6px 14px;
+            transition: border-color 0.3s;
         }
 
-        .action-icon {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px;
-            transition: color 0.2s;
-        }
-
-        .action-icon:hover {
-            color: var(--text-main);
+        .input-wrapper:focus-within {
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
         }
 
         .chat-input {
             flex: 1;
-            padding: 10px 4px;
             background: transparent;
             border: none;
             color: var(--text-main);
-            font-size: 0.95rem;
-            outline: none;
+            font-size: 15px;
+            padding: 10px;
         }
 
         .chat-input::placeholder {
-            color: #94a3b8;
+            color: var(--text-muted);
         }
 
-        .send-btn {
-            background: #94a3b8;
+        .action-btn {
+            background: transparent;
             border: none;
-            width: 36px;
-            height: 36px;
+            color: var(--text-muted);
+            font-size: 18px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
 
-        .send-btn.active {
-            background: #0f172a;
+        .action-btn:hover {
+            color: var(--gold-primary);
         }
 
-        .send-btn svg {
-            width: 16px;
-            height: 16px;
-            fill: #ffffff;
-            transform: rotate(180deg);
+        .send-btn {
+            background: var(--gold-primary);
+            color: #101014;
+        }
+
+        .send-btn:hover {
+            background: var(--gold-glow);
+            color: #101014;
+            transform: scale(1.05);
+        }
+
+        /* شريط سفلي للأزرار السريعة (تحليل، ميزات، إعدادات) */
+        .quick-features {
+            display: flex;
+            justify-content: space-around;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .feature-item i {
+            font-size: 16px;
+            color: var(--gold-primary);
+        }
+
+        /* إخفاء شريط التمرير الافتراضي المزعج */
+        .chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-area::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <div class="app-header">
-            <div class="header-top">
-                <button class="menu-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
-                <div class="app-title">ahmad AI <span class="status-dot"></span></div>
-                <button class="new-chat-btn" onclick="resetToHome()">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-                </button>
+        <header class="app-header">
+            <div class="brand-info">
+                <img src="https://ahmadkorai254-glitch.github.io/-/876.png" class="brand-logo" alt="Logo">
+                <span class="brand-name">Luxury AI</span>
+            </div>
+            <div class="header-actions">
+                <i class="fas fa-palette" title="سمة التطبيق"></i>
+                <i class="fas fa-cog" title="الإعدادات"></i>
+            </div>
+        </header>
+
+        <main class="chat-area" id="chatArea">
+            <div class="message ai">
+                مرحباً بك يا أحمد في <b>Luxury AI</b> الملكي ✨. كيف يمكنني مساعدتك اليوم؟ يمكنك تجربة كتابة رسالة أو اختبار الميزات الفاخرة بالأسفل.
+            </div>
+        </main>
+
+        <footer class="input-area">
+            <div class="input-wrapper">
+                <button class="action-btn" title="رفع صورة"><i class="fas fa-image"></i></button>
+                <button class="action-btn" title="تسجيل صوتي"><i class="fas fa-microphone"></i></button>
+                
+                <input type="text" class="chat-input" id="userInput" placeholder="اكتب رسالتك الذكية هنا...">
+                
+                <button class="action-btn send-btn" id="sendBtn"><i class="fas fa-paper-plane-vertical"></i></button>
             </div>
             
-            <div class="model-selector">
-                <button class="model-btn" data-model="claude" onclick="switchModel('claude')">
-                    <span class="model-dot claude-dot"></span> Claude
-                </button>
-                <button class="model-btn active" data-model="gemini" onclick="switchModel('gemini')">
-                    <span class="model-dot gemini-dot"></span> Gemini
-                </button>
+            <div class="quick-features">
+                <div class="feature-item"><i class="fas fa-user-shield"></i><span>تسجيل الدخول</span></div>
+                <div class="feature-item"><i class="fas fa-wand-magic-sparkles"></i><span>تحليل الصور</span></div>
+                <div class="feature-item"><i class="fas fa-volume-high"></i><span>صوت نقي</span></div>
             </div>
-        </div>
-
-        <div class="chat-area" id="chatArea">
-            <div class="welcome-container" id="welcomeSection">
-                <div class="welcome-avatar"></div>
-                <h2 class="welcome-text">مرحباً بك في ahmad AI</h2>
-                <p class="welcome-subtext">اسأل أي شيء – نصوص، برمجة، أو استفسارات ذكية</p>
-                
-                <div class="suggestions-grid">
-                    <div class="suggestion-card" onclick="useSuggestion('اكتب كود دالة لفحص رقم أولي بـ Python')">
-                        <span class="card-icon">&lt;/&gt;</span>
-                        <h4 class="card-title">اكتب كود</h4>
-                        <p class="card-desc">دالة لفحص رقم أولي بـ Python</p>
-                    </div>
-                    <div class="suggestion-card orange" onclick="useSuggestion('أعطني نصيحة برمجية لتطوير مهاراتي اليوم')">
-                        <span class="card-icon">💡</span>
-                        <h4 class="card-title">نصيحة ذكية</h4>
-                        <p class="card-desc">كيف أطور مهاراتي البرمجية؟</p>
-                    </div>
-                    <div class="suggestion-card orange" onclick="useSuggestion('ما الفرق بين REST و GraphQL؟')">
-                        <span class="card-icon">🧠</span>
-                        <h4 class="card-title">اشرح فكرة</h4>
-                        <p class="card-desc">ما الفرق بين REST و GraphQL؟</p>
-                    </div>
-                    <div class="suggestion-card" onclick="useSuggestion('ترجم هذه الفقرة من العربية إلى الإنجليزية')">
-                        <span class="card-icon">文</span>
-                        <h4 class="card-title">ترجم نص</h4>
-                        <p class="card-desc">ترجم فقرة من العربية إلى الإنجليزية</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="input-container">
-            <div class="input-wrapper">
-                <button class="action-icon" onclick="alert('ميزة رفع الملفات ستتوفر قريباً في التحديث القادم!')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                </button>
-                <button class="action-icon" onclick="alert('ميزة التقاط الصور ستتوفر قريباً في التحديث القادم!')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                </button>
-                
-                <input type="text" class="chat-input" id="chatInput" placeholder="...اكتب رسالتك" oninput="toggleSendBtn()" onkeypress="handleKeyPress(event)">
-                
-                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
+        </footer>
     </div>
 
     <script>
-        let currentModel = 'gemini';
+        const chatArea = document.getElementById('chatArea');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
 
-        function toggleSendBtn() {
-            const input = document.getElementById('chatInput');
-            const sendBtn = document.getElementById('sendBtn');
-            if (input.value.trim().length > 0) {
-                sendBtn.classList.add('active');
-            } else {
-                sendBtn.classList.remove('active');
-            }
-        }
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (text === '') return;
 
-        function switchModel(model) {
-            currentModel = model;
-            document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`.model-btn[data-model="${model}"]`).classList.add('active');
-        }
-
-        function useSuggestion(text) {
-            document.getElementById('chatInput').value = text;
-            toggleSendBtn();
-            sendMessage();
-        }
-
-        function resetToHome() {
-            const chatArea = document.getElementById('chatArea');
-            chatArea.innerHTML = `
-                <div class="welcome-container" id="welcomeSection">
-                    <div class="welcome-avatar"></div>
-                    <h2 class="welcome-text">مرحباً بك في ahmad AI</h2>
-                    <p class="welcome-subtext">اسأل أي شيء – نصوص، برمجة، أو استفسارات ذكية</p>
-                    <div class="suggestions-grid">
-                        <div class="suggestion-card" onclick="useSuggestion('اكتب كود دالة لفحص رقم أولي بـ Python')"><span class="card-icon">&lt;/&gt;</span><h4 class="card-title">اكتب كود</h4><p class="card-desc">دالة لفحص رقم أولي بـ Python</p></div>
-                        <div class="suggestion-card orange" onclick="useSuggestion('أعطني نصيحة برمجية لتطوير مهاراتي اليوم')"><span class="card-icon">💡</span><h4 class="card-title">نصيحة ذكية</h4><p class="card-desc">كيف أطور مهاراتي البرمجية؟</p></div>
-                        <div class="suggestion-card orange" onclick="useSuggestion('ما الفرق بين REST و GraphQL؟')"><span class="card-icon">🧠</span><h4 class="card-title">اشرح فكرة</h4><p class="card-desc">ما الفرق بين REST و GraphQL؟</p></div>
-                        <div class="suggestion-card" onclick="useSuggestion('ترجم هذه الفقرة من العربية إلى الإنجليزية')"><span class="card-icon">文</span><h4 class="card-title">ترجم نص</h4><p class="card-desc">ترجم فقرة من العربية إلى الإنجليزية</p></div>
-                    </div>
-                </div>`;
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const sendBtn = document.getElementById('sendBtn');
-            const text = input.value.trim();
-            if (!text) return;
-
-            const chatArea = document.getElementById('chatArea');
+            // رسالة المستخدم
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user';
+            userDiv.textContent = text;
+            chatArea.appendChild(userDiv);
             
-            const welcomeSection = document.getElementById('welcomeSection');
-            if (welcomeSection) welcomeSection.remove();
-
-            const userMsg = document.createElement('div');
-            userMsg.className = 'message user';
-            userMsg.innerText = text;
-            chatArea.appendChild(userMsg);
-
-            input.value = '';
-            sendBtn.classList.remove('active');
+            userInput.value = '';
             chatArea.scrollTop = chatArea.scrollHeight;
 
-            const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'message ai';
-            loadingMsg.innerText = "...جاري التفكير";
-            chatArea.appendChild(loadingMsg);
-            chatArea.scrollTop = chatArea.scrollHeight;
-
-            try {
-                // الاتصال المباشر عبر طلب GET آمن وسريع جداً ومستقر لتفادي مشكلة الـ Deprecation التابعة لـ Pollinations
-                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?system=${encodeURIComponent("أنت مساعد ذكي تجيب باحتصار وذكاء وبلغة عربية سليمة")}&cache=false`);
-                
-                if (response.ok) {
-                    let aiRawText = await response.text();
-                    
-                    // تخصيص الإجابة بناء على اسم الموديل ليعطيك طابع التبديل الحقيقي والذكي بينهما
-                    if(currentModel === 'claude') {
-                        aiRawText = "[Claude]: " + aiRawText;
-                    } else {
-                        aiRawText = "[Gemini]: " + aiRawText;
-                    }
-                    
-                    loadingMsg.innerText = aiRawText.trim();
-                } else {
-                    loadingMsg.innerText = "النموذج ممتلئ بالطلبات حالياً، يرجى إعادة المحاولة بعد ثوانٍ قليلة.";
-                }
-            } catch (error) {
-                loadingMsg.innerText = "عذراً، واجهت مشكلة في الاتصال بالشبكة. يرجى المحاولة مجدداً.";
-            } finally {
+            // محاكاة استجابة الذكاء الاصطناعي الأنيقة
+            setTimeout(() => {
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'message ai';
+                aiDiv.innerHTML = `تم استلام أمرك الفاخر: <b>"${text}"</b>. جاري معالجة طلبك عبر الخوادم الذكية...`;
+                chatArea.appendChild(aiDiv);
                 chatArea.scrollTop = chatArea.scrollHeight;
-            }
+            }, 800);
         }
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
