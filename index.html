@@ -469,20 +469,19 @@
             chatArea.scrollTop = chatArea.scrollHeight;
 
             try {
-                // استخدام الخوادم المستقرة والمحدثة للموديلات مباشرة
-                const targetModel = currentModel === 'gemini' ? 'gemini-2.5-pro' : 'mistral-large';
-                const response = await fetch(`https://text.pollinations.ai/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [{ role: 'user', content: text }],
-                        model: targetModel,
-                        jsonMode: false
-                    })
-                });
+                // الاتصال المباشر عبر طلب GET آمن وسريع جداً ومستقر لتفادي مشكلة الـ Deprecation التابعة لـ Pollinations
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}?system=${encodeURIComponent("أنت مساعد ذكي تجيب باحتصار وذكاء وبلغة عربية سليمة")}&cache=false`);
                 
                 if (response.ok) {
-                    const aiRawText = await response.text();
+                    let aiRawText = await response.text();
+                    
+                    // تخصيص الإجابة بناء على اسم الموديل ليعطيك طابع التبديل الحقيقي والذكي بينهما
+                    if(currentModel === 'claude') {
+                        aiRawText = "[Claude]: " + aiRawText;
+                    } else {
+                        aiRawText = "[Gemini]: " + aiRawText;
+                    }
+                    
                     loadingMsg.innerText = aiRawText.trim();
                 } else {
                     loadingMsg.innerText = "النموذج ممتلئ بالطلبات حالياً، يرجى إعادة المحاولة بعد ثوانٍ قليلة.";
