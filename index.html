@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luxury AI - Dual Models</title>
+    <title>Ahmad AI - Smart Chat</title>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --bg-gradient: linear-gradient(135deg, #e0eaf5 0%, #f0f4f8 100%);
             --chat-bg: #ffffff;
-            --text-color: #1e293b;
-            --gpt-color: #10a37f;
-            --claude-color: #d97706;
-            --user-msg-bg: #2563eb;
+            --text-color: #0f172a;
+            --claude-color: #d97757;
+            --gemini-color: #1da1f2;
+            --user-msg-bg: #007aff;
             --ai-msg-bg: #f1f5f9;
-            --border-color: #e2e8f0;
+            --border-color: rgba(0,0,0,0.05);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -26,12 +26,12 @@
             }
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         body { background: var(--bg-gradient); height: 100vh; display: flex; justify-content: center; align-items: center; padding: 10px; }
         
         .app-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             height: 92vh;
             background: var(--chat-bg);
             border-radius: 24px;
@@ -42,158 +42,220 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
-        /* شريط اختيار النموذج النشط */
-        .model-selector {
+        /* الهيدر العلوي */
+        .header {
             display: flex;
-            background: var(--ai-msg-bg);
-            padding: 6px;
-            gap: 6px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
             border-bottom: 1px solid var(--border-color);
         }
+        .title-wrap { display: flex; align-items: center; gap: 6px; }
+        .title-text { font-size: 1.2rem; font-weight: 700; color: var(--text-color); }
+        .title-dot { width: 8px; height: 8px; borderRadius: 50%; background-color: #22c55e; }
 
-        .model-tab {
+        /* شريط اختيار النموذج المتطور */
+        .model-switcher {
+            display: flex;
+            background: var(--ai-msg-bg);
+            padding: 4px;
+            margin: 10px 16px;
+            border-radius: 30px;
+            gap: 4px;
+        }
+        .model-option {
             flex: 1;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
-            border-radius: 12px;
+            border-radius: 20px;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-size: 0.85rem;
+            font-weight: 600;
             color: var(--text-color);
             opacity: 0.6;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
         }
-
-        .model-tab.active[data-model="chatgpt"] {
-            background: var(--gpt-color);
-            color: white;
+        .model-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .model-option.active {
+            background: var(--chat-bg);
             opacity: 1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        .model-tab.active[data-model="claude"] {
-            background: var(--claude-color);
-            color: white;
-            opacity: 1;
+        /* مساحة الرسائل */
+        .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        
+        .msg-row { display: flex; gap: 8px; width: 100%; }
+        .msg-row.user { justify-content: flex-start; }
+        .msg-row.ai { justify-content: flex-end; }
+
+        .bubble { max-width: 75%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; position: relative; }
+        .msg-row.user .bubble { background: var(--user-msg-bg); color: white; border-bottom-right-radius: 4px; }
+        .msg-row.ai .bubble { background: var(--ai-msg-bg); color: var(--text-color); border-bottom-left-radius: 4px; }
+
+        /* محاذاة وصناديق الأكواد البرمجية المصلحة */
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 8px;
+            margin-top: 8px;
+            overflow: hidden;
+            color: #d4d4d4;
+            direction: ltr;
+            text-align: left;
         }
+        .code-header {
+            background: #2d2d2d;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: #a6a6a6;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .code-content { padding: 12px; overflow-x: auto; font-family: monospace; font-size: 0.85rem; white-space: pre; }
 
-        .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        
-        .message { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 0.95rem; line-height: 1.4; animation: fadeIn 0.25s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .message.user { background: var(--user-msg-bg); color: white; align-self: flex-start; border-bottom-right-radius: 4px; }
-        
-        /* تمييز ردود الذكاء الاصطناعي بناءً على الهوية */
-        .message.ai { background: var(--ai-msg-bg); color: var(--text-color); align-self: flex-end; border-bottom-left-radius: 4px; position: relative; }
-        .message.ai::before { content: attr(data-sender); display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; opacity: 0.7; }
-        .message.ai.gpt::before { color: var(--gpt-color); }
-        .message.ai.claude::before { color: var(--claude-color); }
-
-        .input-area { padding: 12px; background: var(--chat-bg); border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
-        .chat-input { flex: 1; padding: 12px 16px; background: var(--ai-msg-bg); border: 1px solid var(--border-color); border-radius: 20px; color: var(--text-color); font-size: 0.95rem; outline: none; }
-        
-        .send-btn { background: var(--user-msg-bg); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; }
+        /* منطقة الإدخال */
+        .input-wrap { padding: 12px 16px; border-top: 1px solid var(--border-color); }
+        .input-bar { display: flex; gap: 8px; align-items: center; background: var(--ai-msg-bg); padding: 6px 12px; border-radius: 24px; }
+        .input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-color); font-size: 0.95rem; padding: 4px; }
+        .send-btn { background: var(--user-msg-bg); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1rem; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <div class="model-selector">
-            <div class="model-tab active" data-model="chatgpt" onclick="switchModel('chatgpt')">ChatGPT (GPT-4o)</div>
-            <div class="model-tab" data-model="claude" onclick="switchModel('claude')">Claude (Anthropic)</div>
+        <div class="header">
+            <div class="title-wrap">
+                <span class="title-text">ahmad AI</span>
+                <div class="title-dot"></div>
+            </div>
+        </div>
+
+        <div class="model-switcher">
+            <div class="model-option active" id="opt-claude" onclick="switchModel('claude')">
+                <div class="model-dot" style="background: var(--claude-color);"></div>
+                <span>Claude</span>
+            </div>
+            <div class="model-option" id="opt-gemini" onclick="switchModel('gemini')">
+                <div class="model-dot" style="background: var(--gemini-color);"></div>
+                <span>Gemini</span>
+            </div>
         </div>
 
         <div class="messages-area" id="messagesArea">
-            <div class="message ai gpt" data-sender="ChatGPT">مرحباً أحمد! أنا نموذج ChatGPT المطور من OpenAI، كيف يمكنني مساعدتك برمجياً الآن؟</div>
+            <div class="msg-row ai">
+                <div class="bubble">مرحباً بك في ahmad AI! أنا مجهز للعمل بنموذج Claude المطور، اسألني أي شيء أو اطلب كوداً برمجياً.</div>
+            </div>
         </div>
 
-        <div class="input-area">
-            <input type="text" class="chat-input" id="chatInput" placeholder="اكتب سؤالك التقني هنا..." onkeypress="checkEnter(event)">
-            <button class="send-btn" onclick="handleSend()">➔</button>
+        <div class="input-wrap">
+            <div class="input-bar">
+                <input type="text" class="input" id="chatInput" placeholder="اكتب رسالتك..." onkeypress="handleKey(event)">
+                <button class="send-btn" onclick="sendMessage()">➔</button>
+            </div>
         </div>
     </div>
 
     <script>
-        let currentModel = 'chatgpt';
+        let currentModel = "claude";
         const messagesArea = document.getElementById('messagesArea');
         const chatInput = document.getElementById('chatInput');
 
-        // تبديل النموذج الفعال برمجياً وفصل الهويات
-        function switchModel(modelName) {
-            currentModel = modelName;
-            document.querySelectorAll('.model-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelector(`.model-tab[data-model="${modelName}"]`).classList.add('active');
+        function switchModel(model) {
+            currentModel = model;
+            document.getElementById('opt-claude').classList.remove('active');
+            document.getElementById('opt-gemini').classList.remove('active');
             
-            // إضافة رسالة ترحيبية تؤكد الهوية المنفصلة
-            if(modelName === 'claude') {
-                appendSystemMessage("تم التحويل إلى نموذج Claude 3.5 الصادر من Anthropic بنجاح.", "claude");
+            if(model === 'claude') {
+                document.getElementById('opt-claude').classList.add('active');
+                appendSystemMessage("تم التحويل إلى نموذج: claude-3-5-sonnet");
             } else {
-                appendSystemMessage("تم التحويل إلى نموذج ChatGPT الصادر من OpenAI بنجاح.", "gpt");
+                document.getElementById('opt-gemini').classList.add('active');
+                appendSystemMessage("تم التحويل إلى نموذج: gemini-1.5-pro");
             }
         }
 
-        function checkEnter(e) { if (e.key === 'Enter') handleSend(); }
+        function handleKey(e) { if(e.key === 'Enter') sendMessage(); }
 
-        function handleSend() {
+        function sendMessage() {
             const text = chatInput.value.trim();
-            if (!text) return;
+            if(!text) return;
 
-            // 1. عرض رسالة المستخدم
             appendMessage(text, 'user');
             chatInput.value = '';
 
-            // 2. معالجة الرد المنفصل بناءً على النموذج المختار لإنهاء مشكلة التطابق والتقليد
+            // محاكاة الاتصال والرد المنفصل لكل نموذج لمنع التداخل والثغرات
             setTimeout(() => {
-                generateSeparateResponse(text, currentModel);
-            }, 700);
+                let reply = "";
+                if(currentModel === 'claude') {
+                    reply = `أنا نموذج Claude المطور من Anthropic. لقد استلمت طلبك بنجاح. إليك نموذج الكود المطلوب:\n\`\`\`python\ndef check_prime(n):\n    if n < 2: return False\n    for i in range(2, int(n**0.5)+1):\n        if n % i == 0: return False\n    return True\n\`\`\``;
+                } else {
+                    reply = `مرحباً أحمد، أنا محرك Gemini الذكي المطور من Google. بخصوص مسألتك التقنية "${text}"، يمكننا حلها بتحليل البيانات بشكل هيكلي دقيق ومختلف تماماً عن النماذج الأخرى.`;
+                }
+                appendMessage(reply, 'ai');
+            }, 800);
         }
 
-        function appendMessage(text, sender, modelClass = '', senderName = '') {
-            const div = document.createElement('div');
-            div.className = `message ${sender} ${modelClass}`;
-            if(sender === 'ai') {
-                div.setAttribute('data-sender', senderName);
+        function appendMessage(text, sender) {
+            const row = document.createElement('div');
+            row.className = `msg-row ${sender}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            // دالة الفحص المصلحة للأكواد البرمجية داخل النص
+            if(text.includes('```')) {
+                const parts = text.split(/```/);
+                parts.forEach((part, index) => {
+                    if(index % 2 === 1) { // جزء الكود البرمجي
+                        const lines = part.split('\n');
+                        const lang = lines[0] || 'code';
+                        const code = lines.slice(1).join('\n');
+
+                        const codeBlock = document.createElement('div');
+                        codeBlock.className = 'code-block';
+                        codeBlock.innerHTML = `
+                            <div class="code-header">
+                                <span>${lang}</span>
+                                <button class="copy-btn" onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`').trim()}\`); alert('تم النسخ!');">نسخ</button>
+                            </div>
+                            <div class="code-content">${code.trim()}</div>
+                        `;
+                        bubble.appendChild(codeBlock);
+                    } else { // جزء النص العادي
+                        if(part.trim()) {
+                            const txtNode = document.createElement('p');
+                            txtNode.innerText = part;
+                            bubble.appendChild(txtNode);
+                        }
+                    }
+                });
+            } else {
+                bubble.innerText = text;
             }
-            div.innerText = text;
-            messagesArea.appendChild(div);
+
+            row.appendChild(bubble);
+            messagesArea.appendChild(row);
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
-        function appendSystemMessage(text, style) {
-            const div = document.createElement('div');
-            div.style.alignSelf = 'center';
-            div.style.fontSize = '0.8rem';
-            div.style.background = 'rgba(0,0,0,0.05)';
-            div.style.padding = '4px 12px';
-            div.style.borderRadius = '12px';
-            div.style.color = 'var(--text-color)';
-            div.style.opacity = '0.7';
-            div.innerText = text;
-            messagesArea.appendChild(div);
+        function appendSystemMessage(text) {
+            const sysDiv = document.createElement('div');
+            sysDiv.style.cssText = "align-self: center; font-size: 0.75rem; background: rgba(0,0,0,0.04); padding: 4px 12px; border-radius: 12px; margin: 4px 0; opacity: 0.7; color: var(--text-color);";
+            sysDiv.innerText = text;
+            messagesArea.appendChild(sysDiv);
             messagesArea.scrollTop = messagesArea.scrollHeight;
-        }
-
-        // دالة فصل الهويات الحقيقية ومنع التداخل
-        function generateSeparateResponse(promptText, model) {
-            let responseText = "";
-            let senderName = "";
-            let modelClass = "";
-
-            if (model === 'chatgpt') {
-                senderName = "ChatGPT (OpenAI)";
-                modelClass = "gpt";
-                // هنا تضع رابط الـ API الفعلي الخاص بـ OpenAI
-                responseText = `أنا نموذج ChatGPT المطور بواسطة OpenAI. لقد استقبلت سؤالك بخصوص: "${promptText}". كيف يمكنني صياغة الكود لك؟`;
-            } else if (model === 'claude') {
-                senderName = "Claude (Anthropic)";
-                modelClass = "claude";
-                // هنا تضع رابط الـ API الفعلي الخاص بـ Anthropic لمنع أي تداخل
-                responseText = `أنا Claude، النموذج الذكي المطور من قبل شركة Anthropic. يسعدني تقديم تحليل دقيق ومختلف تماماً عن محركات الذكاء الاصطناعي الأخرى لسؤالك: "${promptText}".`;
-            }
-
-            appendMessage(responseText, 'ai', modelClass, senderName);
         }
     </script>
 </body>
-    </html>
-    
+</html>
