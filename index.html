@@ -1,377 +1,99 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Image, Modal,
-  Alert, ScrollView, Pressable, Animated, Easing, Linking,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import * as Clipboard from "expo-clipboard";
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahmad AI - Luxury AI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #020617 100%); height: 100vh; display: flex; justify-content: center; align-items: center; padding: 10px; color: #f8fafc; }
+        .app-container { width: 100%; max-width: 480px; height: 92vh; background: #1e293b; border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #334155; }
+        .title-wrap { display: flex; align-items: center; gap: 6px; }
+        .title-text { font-size: 1.2rem; font-weight: 700; color: #f8fafc; }
+        .title-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; }
+        .model-switcher { display: flex; background: #334155; padding: 4px; margin: 10px 16px; border-radius: 30px; gap: 4px; }
+        .model-option { flex: 1; padding: 8px; text-align: center; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; opacity: 0.6; transition: all 0.2s ease; }
+        .model-option.active { background: #1e293b; opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .messages-area { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .msg-row { display: flex; width: 100%; }
+        .msg-row.user { justify-content: flex-end; }
+        .msg-row.ai { justify-content: flex-start; }
+        .bubble { max-width: 75%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; }
+        .msg-row.user .bubble { background: #007aff; color: white; border-bottom-style: none; }
+        .msg-row.ai .bubble { background: #334155; color: #f8fafc; }
+        .input-wrap { padding: 12px 16px; border-top: 1px solid #334155; }
+        .input-bar { display: flex; gap: 8px; align-items: center; background: #334155; padding: 6px 12px; border-radius: 24px; }
+        .input { flex: 1; background: transparent; border: none; outline: none; color: #f8fafc; font-size: 0.95rem; }
+        .send-btn { background: #007aff; color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="title-wrap">
+                <span class="title-text">ahmad AI</span>
+                <div class="title-dot"></div>
+            </div>
+        </div>
+        <div class="model-switcher">
+            <div class="model-option active" id="opt-claude" onclick="switchModel('claude')">Claude</div>
+            <div class="model-option" id="opt-gemini" onclick="switchModel('gemini')">Gemini</div>
+        </div>
+        <div class="messages-area" id="messagesArea">
+            <div class="msg-row ai">
+                <div class="bubble">مرحباً بك في Luxury AI. أنا جاهز للرد عليك الآن.</div>
+            </div>
+        </div>
+        <div class="input-wrap">
+            <div class="input-bar">
+                <input type="text" class="input" id="chatInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button class="send-btn" onclick="sendMessage()">➔</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentModel = "claude";
+        // ضع هنا رابط السيرفر الذي ستقوم بإنشائه على Glitch أو Render
+        const SERVER_URL = "https://your-glitch-project.glitch.me/api/chat"; 
 
-// تغيير الرابط لرابط السيرفر الفعلي المرفوع الخاص بك
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://your-backend-server.com";
-const API = `${BACKEND_URL}/api`;
+        function switchModel(model) {
+            currentModel = model;
+            document.getElementById('opt-claude').classList.remove('active');
+            document.getElementById('opt-gemini').classList.remove('active');
+            document.getElementById('opt-' + model).classList.add('active');
+        }
 
-type ModelKey = "claude" | "gemini";
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if(!text) return;
 
-interface ChatMessage {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant";
-  text: string;
-  has_image?: boolean;
-  image_base64?: string | null;
-  model?: string;
-  created_at: string;
-}
+            appendMsg(text, 'user');
+            input.value = '';
 
-interface ConversationItem {
-  id: string;
-  title: string;
-  model: string;
-  updated_at: string;
-}
+            try {
+                const apiModel = currentModel === 'claude' ? 'claude-3-5-sonnet' : 'gemini-1.5-pro';
+                const response = await fetch(SERVER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, model: apiModel })
+                });
+                const data = await response.json();
+                appendMsg(data.ai_message.text, 'ai');
+            } catch (e) {
+                appendMsg("تعذر الاتصال بالسيرفر. تأكد من تشغيل مشروع Node.js الخاص بك.", 'ai');
+            }
+        }
 
-const parseCodeBlocks = (text: string) => {
-  const parts: { type: "text" | "code"; content: string; lang?: string }[] = [];
-  const regex = /```(\w+)?\n?([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(text)) !== null) {
-    if (m.index > lastIndex) {
-      parts.push({ type: "text", content: text.slice(lastIndex, m.index) });
-    }
-    parts.push({ type: "code", content: m[2], lang: m[1] || "" });
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) parts.push({ type: "text", content: text.slice(lastIndex) });
-  if (parts.length === 0) parts.push({ type: "text", content: text });
-  return parts;
-};
-
-const formatInline = (s: string) => s.replace(/\*\*(.*?)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1");
-
-const CodeBlock: React.FC<{ code: string; lang?: string }> = ({ code, lang }) => {
-  const [copied, setCopied] = useState(false);
-  const onCopy = async () => {
-    await Clipboard.setStringAsync(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <View style={styles.codeBlock}>
-      <View style={styles.codeHeader}>
-        <Text style={styles.codeLang}>{lang || "code"}</Text>
-        <TouchableOpacity onPress={onCopy} style={styles.codeCopyBtn}>
-          <Ionicons name={copied ? "checkmark" : "copy-outline"} size={14} color="#E2E8F0" />
-          <Text style={styles.codeCopyText}>{copied ? "تم" : "نسخ"}</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <Text style={styles.codeText} selectable>{code}</Text>
-      </ScrollView>
-    </View>
-  );
-};
-
-const MessageBubble: React.FC<{ msg: ChatMessage; onCopy: (t: string) => void }> = ({ msg, onCopy }) => {
-  const isUser = msg.role === "user";
-  const parts = useMemo(() => parseCodeBlocks(msg.text), [msg.text]);
-  return (
-    <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
-      {!isUser && (
-        <View style={styles.aiAvatar}>
-          <LinearGradient colors={["#A5B4FC", "#67E8F9"]} style={styles.aiAvatarInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Text style={styles.aiAvatarText}>A</Text>
-          </LinearGradient>
-        </View>
-      )}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-        {msg.has_image && msg.image_base64 ? (
-          <Image source={{ uri: `data:image/jpeg;base64,${msg.image_base64}` }} style={styles.msgImage} />
-        ) : null}
-        {parts.map((p, i) =>
-          p.type === "code" ? (
-            <CodeBlock key={i} code={p.content} lang={p.lang} />
-          ) : (
-            <Text key={i} style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAI]} selectable>
-              {formatInline(p.content)}
-            </Text>
-          )
-        )}
-        {!isUser && (
-          <TouchableOpacity style={styles.copyBtn} onPress={() => onCopy(msg.text)}>
-            <Ionicons name="copy-outline" size={13} color="#475569" />
-            <Text style={styles.copyBtnText}>نسخ</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-};
-
-const TypingDots: React.FC = () => {
-  const a1 = useRef(new Animated.Value(0)).current;
-  const a2 = useRef(new Animated.Value(0)).current;
-  const a3 = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const make = (val: Animated.Value, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.timing(val, { toValue: 1, duration: 400, delay, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-        Animated.timing(val, { toValue: 0, duration: 400, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-      ]));
-    const l1 = make(a1, 0); const l2 = make(a2, 150); const l3 = make(a3, 300);
-    l1.start(); l2.start(); l3.start();
-    return () => { l1.stop(); l2.stop(); l3.stop(); };
-  }, [a1, a2, a3]);
-  const dot = (v: Animated.Value) => (
-    <Animated.View style={[styles.dot, { opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />
-  );
-  return (
-    <View style={[styles.msgRow, styles.msgRowAI]}>
-      <View style={styles.aiAvatar}>
-        <LinearGradient colors={["#A5B4FC", "#67E8F9"]} style={styles.aiAvatarInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={styles.aiAvatarText}>A</Text>
-        </LinearGradient>
-      </View>
-      <View style={[styles.bubble, styles.bubbleAI, { flexDirection: "row", gap: 4 }]}>
-        {dot(a1)}{dot(a2)}{dot(a3)}
-      </View>
-    </View>
-  );
-};
-
-const SUGGESTIONS = [
-  { icon: "code-slash-outline", title: "اكتب كود", subtitle: "دالة لفحص رقم أولي بـ Python" },
-  { icon: "image-outline", title: "حلل صورة", subtitle: "ارفع صورة واسأل عنها" },
-  { icon: "bulb-outline", title: "اشرح فكرة", subtitle: "ما الفرق بين REST و GraphQL؟" },
-  { icon: "language-outline", title: "ترجم نص", subtitle: "ترجم فقرة من العربية إلى الإنجليزية" },
-];
-
-export default function Index() {
-  const insets = useSafeAreaInsets();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState<ModelKey>("claude");
-  const [sending, setSending] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
-  const flatRef = useRef<FlatList>(null);
-
-  const loadConversations = useCallback(async () => {
-    try {
-      const r = await fetch(`${API}/conversations`);
-      const data = await r.json();
-      setConversations(data || []);
-    } catch (e) { console.log("load conv err", e); }
-  }, []);
-
-  useEffect(() => { loadConversations(); }, [loadConversations]);
-
-  const openConversation = async (id: string) => {
-    try {
-      const r = await fetch(`${API}/conversations/${id}`);
-      const data = await r.json();
-      setConversationId(id);
-      setMessages(data.messages || []);
-      setModel((data.conversation?.model as ModelKey) || "claude");
-      setDrawerOpen(false);
-      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 100);
-    } catch (e) { console.log(e); }
-  };
-
-  const newChat = () => {
-    setConversationId(null); setMessages([]); setPendingImage(null); setDrawerOpen(false);
-  };
-
-  const deleteConversation = async (id: string) => {
-    Alert.alert("حذف المحادثة", "هل تريد حذف هذه المحادثة؟", [
-      { text: "إلغاء", style: "cancel" },
-      { text: "حذف", style: "destructive", onPress: async () => {
-        await fetch(`${API}/conversations/${id}`, { method: "DELETE" });
-        if (id === conversationId) newChat();
-        loadConversations();
-      }},
-    ]);
-  };
-
-  const pickImage = async (fromCamera: boolean) => {
-    try {
-      let result;
-      if (fromCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) { return; }
-        result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.6 });
-      } else {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) { return; }
-        result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
-      }
-      if (!result.canceled && result.assets && result.assets[0]?.base64) {
-        setPendingImage(result.assets[0].base64);
-      }
-    } catch (e) { console.log(e); }
-  };
-
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text && !pendingImage) return;
-    if (sending) return;
-
-    const tempUser: ChatMessage = {
-      id: `tmp-${Date.now()}`,
-      conversation_id: conversationId || "tmp",
-      role: "user", text,
-      has_image: !!pendingImage,
-      image_base64: pendingImage,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempUser]);
-    setInput("");
-    const imgToSend = pendingImage;
-    setPendingImage(null);
-    setSending(true);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
-
-    try {
-      // إصلاح التداخل: نرسل المعرّف الدقيق للسيرفر ليعرف الفرق الصارم بين المحركين
-      const targetApiModel = model === "claude" ? "claude-3-5-sonnet" : "gemini-1.5-pro";
-
-      const r = await fetch(`${API}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          conversation_id: conversationId, 
-          text, 
-          model: targetApiModel, 
-          image_base64: imgToSend 
-        }),
-      });
-      if (!r.ok) { const err = await r.text(); throw new Error(err); }
-      const data = await r.json();
-      setConversationId(data.conversation_id);
-      setMessages((prev) => {
-        const filtered = prev.filter((m) => m.id !== tempUser.id);
-        return [...filtered, data.user_message, data.ai_message];
-      });
-      loadConversations();
-      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
-    } catch (e: any) {
-      Alert.alert("خطأ", "تعذّر الإرسال. تأكد من تشغيل السيرفر الخلفي.\n" + (e?.message || ""));
-      setMessages((prev) => prev.filter((m) => m.id !== tempUser.id));
-    } finally { setSending(false); }
-  };
-
-  const copyText = async (t: string) => { await Clipboard.setStringAsync(t); };
-  const renderItem = ({ item }: { item: ChatMessage }) => <MessageBubble msg={item} onCopy={copyText} />;
-
-  return (
-    <View style={styles.root}>
-      <LinearGradient colors={["#E0EAF5", "#F0F4F8", "#F8FAFC"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setDrawerOpen(true)}>
-            <Ionicons name="menu" size={22} color="#0F172A" />
-          </TouchableOpacity>
-          <View style={styles.titleWrap}>
-            <Text style={styles.titleText}>ahmad AI</Text>
-            <View style={styles.titleDot} />
-          </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={newChat}>
-            <Ionicons name="create-outline" size={22} color="#0F172A" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.modelSwitcher}>
-          <TouchableOpacity onPress={() => setModel("claude")} style={[styles.modelOption, model === "claude" && styles.modelOptionActive]}>
-            <View style={[styles.modelDot, { backgroundColor: "#D97757" }]} />
-            <Text style={[styles.modelLabel, model === "claude" && styles.modelLabelActive]}>Claude</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setModel("gemini")} style={[styles.modelOption, model === "gemini" && styles.modelOptionActive]}>
-            <View style={[styles.modelDot, { backgroundColor: "#1DA1F2" }]} />
-            <Text style={[styles.modelLabel, model === "gemini" && styles.modelLabelActive]}>Gemini</Text>
-          </TouchableOpacity>
-        </View>
-
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          {messages.length === 0 ? (
-            <ScrollView contentContainerStyle={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>مرحباً بك في ahmad AI</Text>
-              <View style={styles.suggestGrid}>
-                {SUGGESTIONS.map((s, i) => (
-                  <TouchableOpacity key={i} style={styles.suggestCard} onPress={() => setInput(s.subtitle)}>
-                    <Text style={styles.suggestTitle}>{s.title}</Text>
-                    <Text style={styles.suggestSubtitle}>{s.subtitle}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          ) : (
-            <FlatList
-              ref={flatRef} data={messages} keyExtractor={(m) => m.id} renderItem={renderItem}
-              contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12 }}
-              ListFooterComponent={sending ? <TypingDots /> : null}
-            />
-          )}
-
-          <View style={[styles.inputWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-            <View style={styles.inputBar}>
-              <TouchableOpacity style={styles.attachBtn} onPress={() => pickImage(false)}>
-                <Ionicons name="image-outline" size={20} color="#475569" />
-              </TouchableOpacity>
-              <TextInput style={styles.input} placeholder="اكتب رسالتك..." value={input} onChangeText={setInput} multiline />
-              <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}>
-                <Ionicons name="arrow-up" size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F0F4F8" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 10 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.7)", alignItems: "center", justifyItems: "center", justifyContent: "center" },
-  titleWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  titleText: { fontSize: 20, fontWeight: "700", color: "#0F172A" },
-  titleDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" },
-  modelSwitcher: { flexDirection: "row", alignSelf: "center", backgroundColor: "rgba(255,255,255,0.8)", borderRadius: 999, padding: 4, marginBottom: 8 },
-  modelOption: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999 },
-  modelOptionActive: { backgroundColor: "#FFFFFF" },
-  modelDot: { width: 8, height: 8, borderRadius: 4 },
-  modelLabel: { fontSize: 13, color: "#475569" },
-  modelLabelActive: { color: "#0F172A", fontWeight: "600" },
-  emptyWrap: { alignItems: "center", paddingHorizontal: 24, paddingTop: 40 },
-  emptyTitle: { fontSize: 22, fontWeight: "bold", color: "#0F172A", marginBottom: 20 },
-  suggestGrid: { width: "100%", gap: 10 },
-  suggestCard: { background: "#fff", padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0" },
-  suggestTitle: { fontWeight: "bold", color: "#0F172A" },
-  suggestSubtitle: { color: "#64748B", fontSize: 12, marginTop: 2 },
-  msgRow: { flexDirection: "row", marginVertical: 6, width: "100%" },
-  msgRowUser: { justifyContent: "flex-end" },
-  msgRowAI: { justifyContent: "flex-start" },
-  bubble: { pading: 12, borderRadius: 16, maxWidth: "80%" },
-  bubbleUser: { backgroundColor: "#2563EB" },
-  bubbleAI: { backgroundColor: "#E2E8F0" },
-  msgText: { fontSize: 15 },
-  msgTextUser: { color: "#fff" },
-  msgTextAI: { color: "#0F172A" },
-  inputWrap: { paddingHorizontal: 12 },
-  inputBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 6 },
-  input: { flex: 1, paddingHorizontal: 10, color: "#0F172A" },
-  sendBtn: { backgroundColor: "#2563EB", width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
-  codeBlock: { backgroundColor: "#1E293B", borderRadius: 8, marginVertical: 8, padding: 10, width: "100%" },
-  codeHeader: { flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: "#334155", paddingBottom: 6 },
-  codeLang: { color: "#94A3B8", fontSize: 12 },
-  codeText: { color: "#F8FAF3", fontFamily: "monospace", marginTop: 8 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#64748B" }
-});
-          
+        function appendMsg(text, sender) {
+            const area = document.getElementById('messagesArea');
+            const row = document.createElement('div');
+            row.className = `msg-row ${sender}`;
+            row.innerHTML = `<div class="bubble">${text}</div>`;
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+        }
+    </script>
+</body>
+</html>
