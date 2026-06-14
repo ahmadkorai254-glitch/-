@@ -13,6 +13,57 @@ import * as Clipboard from 'expo-clipboard';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// دالة مخصصة لتقسيم النصوص البرمجية وعرضها بشكل منفصل
+const parseCodeBlocks = (text) => {
+  const parts = [];
+  const regex = /```(\w+)?\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: 'code', content: match[2], lang: match[1] || 'code' });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ type: 'text', content: text.slice(lastIndex) });
+  }
+
+  if (parts.length === 0) {
+    parts.push({ type: 'text', content: text });
+  }
+
+  return parts;
+};
+
+// مكون مخصص لعرض الأكواد البرمجية مع زر النسخ
+const CodeBlock = ({ code, lang }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <View style={styles.codeContainer}>
+      <View style={styles.codeHeader}>
+        <Text style={styles.codeLang}>{lang}</Text>
+        <TouchableOpacity onPress={copyToClipboard}>
+          <Text style={styles.copyText}>{copied ? 'تم النسخ!' : 'نسخ'}</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <Text style={styles.codeText}>{code}</Text>
+      </ScrollView>
+    </View>
+  );
+};
+
 export default function App() {
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState([]);
@@ -22,16 +73,17 @@ export default function App() {
   const [model, setModel] = useState('claude');
   const [sending, setSending] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null);
   const flatRef = useRef(null);
 
-  // جلب المحادثات السابقة من السيرفر
+  // جلب المحادثات السابقة
   const loadConversations = useCallback(async () => {
     try {
       const res = await fetch(`${API}/conversations`);
       const data = await res.json();
       setConversations(data || []);
     } catch (e) {
-      console.log('Load conv error:', e);
+      console.log('Error loading conversations:', e);
     }
   }, []);
 
@@ -39,9 +91,37 @@ export default function App() {
     loadConversations();
   }, [loadConversations]);
 
-  // دالة إرسال الرسائل النصية
+  // دالة اختيار وتحميل الصور من الاستوديو أو الكاميرا
+  const pickImage = async (fromCamera = false) => {
+    try {
+      const permissionResult = fromCamera 
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('صلاحية مرفوضة', 'نحتاج إلى الصلاحية للوصول للصور أو الكاميرا!');
+        return;
+      }
+
+      const result = fromCamera
+        ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.6 })
+        : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
+
+      if (!result.canceled) {
+        setPendingImage({
+          uri: result.assets[0].uri,
+          base64: result.assets[0].base64
+        });
+      }
+    } catch (e) {
+      console.log('Image picker error:', e);
+    }
+  };
+
+  // دالة إرسال الرسالة مع دعم الصور المرفقة والنموذج المختار
   const sendMessage = async () => {
-    if (!input.trim() || sending) return;
+    if ((!input.trim() && !pendingImage) || sending) return;
+
     const text = input.trim();
     setInput('');
     setSending(true);
@@ -50,11 +130,15 @@ export default function App() {
       id: Date.now().toString(),
       role: 'user',
       text: text,
+      image_base64: pendingImage ? pendingImage.uri : null,
       created_at: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, tempUserMsg]);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+    const imageToSend = pendingImage ? pendingImage.base64 : null;
+    setPendingImage(null);
+
+    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
       const res = await fetch(`${API}/chat`, {
@@ -63,28 +147,29 @@ export default function App() {
         body: JSON.stringify({
           conversation_id: conversationId,
           text: text,
-          model: model
+          model: model,
+          image_base64: imageToSend
         })
       });
 
-      if (!res.ok) throw new Error('Network error');
+      if (!res.ok) throw new Error('API Error');
       const data = await res.json();
-      
+
       if (!conversationId) setConversationId(data.conversation_id);
       setMessages(data.messages || []);
       loadConversations();
     } catch (e) {
-      Alert.alert('خطأ', 'تعذر إرسال الرسالة، تأكد من اتصال الـ Backend');
+      Alert.alert('خطأ في الشبكة', 'تعذر إرسال الرسالة، يرجى التحقق من الخادم الخلفي');
       console.log(e);
     } finally {
       setSending(false);
-      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
 
   const SUGGESTIONS = [
     { icon: 'code-slash-outline', title: 'اكتب كود', subtitle: 'دالة فحص رقم أولي بـ Python' },
-    { icon: 'image-outline', title: 'حلل صورة', subtitle: 'ارفع صورة واسأل عنها' },
+    { icon: 'image-outline', title: 'حلل صورة', subtitle: 'ارفع صورة واسأل عنها بالتفصيل' },
     { icon: 'bulb-outline', title: 'اشرح فكرة', subtitle: 'ما الفرق بين REST و GraphQL' }
   ];
 
@@ -92,7 +177,7 @@ export default function App() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <SafeAreaView style={[styles.root, { paddingTop: insets.top }]}>
         
-        {/* الهيدر العلوي وشريط التنقل */}
+        {/* الهيدر وشريط اختيار النماذج */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setDrawerOpen(true)}>
             <Ionicons name="menu-outline" size={28} color="#0F172A" />
@@ -114,7 +199,7 @@ export default function App() {
           </View>
         </View>
 
-        {/* مساحة عرض المحادثة أو الواجهة الافتراضية */}
+        {/* جسم التطبيق: الشاشة الفارغة أو المحادثة المتدفقة */}
         {messages.length === 0 ? (
           <ScrollView contentContainerStyle={styles.emptyContainer}>
             <View style={styles.emptyAvatar}>
@@ -124,9 +209,9 @@ export default function App() {
             </View>
             <Text style={styles.titleWrap}>اسأل أي شيء – نصوص، برمجيات، أو ارفع صورة لمشروعك</Text>
             
-            <View style={{ width: '100%', marginTop: 20 }}>
+            <View style={{ width: '100%', marginTop: 24 }}>
               {SUGGESTIONS.map((item, idx) => (
-                <TouchableOpacity key={idx} style={styles.iconBtn} onPress={() => setInput(item.subtitle)}>
+                <TouchableOpacity key={idx} style={styles.suggestionItem} onPress={() => setInput(item.subtitle)}>
                   <Ionicons name={item.icon} size={24} color="#0F172A" />
                   <View style={{ marginLeft: 12 }}>
                     <Text style={styles.modelLabel}>{item.title}</Text>
@@ -141,25 +226,52 @@ export default function App() {
             ref={flatRef}
             data={messages}
             keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
             renderItem={({ item }) => (
               <View style={[styles.messageRow, item.role === 'user' ? styles.userRow : styles.assistantRow]}>
-                <Text style={{ color: item.role === 'user' ? '#FFF' : '#0F172A' }}>{item.text}</Text>
+                {item.image_base64 && (
+                  <Image source={{ uri: item.image_base64 }} style={styles.bubbleImage} />
+                )}
+                {item.role === 'user' ? (
+                  <Text style={{ color: '#FFF' }}>{item.text}</Text>
+                ) : (
+                  parseCodeBlocks(item.text).map((part, index) => (
+                    part.type === 'code' ? (
+                      <CodeBlock key={index} code={part.content} lang={part.lang} />
+                    ) : (
+                      <Text key={index} style={{ color: '#0F172A', lineHeight: 20 }}>{part.content}</Text>
+                    )
+                  ))
+                )}
               </View>
             )}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
           />
         )}
 
-        {/* صندوق الإدخال السفلي */}
+        {/* عرض الصورة المختارة مؤقتاً قبل الإرسال */}
+        {pendingImage && (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: pendingImage.uri }} style={styles.previewThumb} />
+            <TouchableOpacity style={styles.closePreview} onPress={() => setPendingImage(null)}>
+              <Ionicons name="close-circle" size={24} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* شريط الإدخال السفلي مع أزرار تحميل الصور والإرسال */}
         <View style={styles.inputBar}>
+          <TouchableOpacity style={styles.imageBtn} onPress={() => pickImage(false)}>
+            <Ionicons name="image-outline" size={24} color="#64748B" />
+          </TouchableOpacity>
           <TextInput
             style={styles.textInput}
             placeholder="اسأل ahmad AI..."
             value={input}
             onChangeText={setInput}
+            multiline
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-            <Ionicons name="arrow-up" size={24} color="#FFF" />
+          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={sending}>
+            {sending ? <ActivityIndicator color="#FFF" /> : <Ionicons name="arrow-up" size={22} color="#FFF" />}
           </TouchableOpacity>
         </View>
 
@@ -170,7 +282,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F4F8' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 60, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 60, borderBottomWidth: 1, borderBottomColor: '#E2E8F0', backgroundColor: '#FFF' },
   titleText: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
   modelSwitcher: { flexDirection: 'row', backgroundColor: '#E2E8F0', borderRadius: 20, padding: 2 },
   modelOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 18 },
@@ -179,11 +291,22 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 40 },
   emptyAvatar: { width: 88, height: 88, borderRadius: 44, padding: 6, backgroundColor: 'rgba(255,255,255,0.8)', marginBottom: 14 },
   titleWrap: { fontSize: 16, fontWeight: '600', textAlign: 'center', color: '#334155' },
-  iconBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 12, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 14, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
   inputBar: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  textInput: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 24, paddingHorizontal: 16, height: 45 },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
-  messageRow: { padding: 12, borderRadius: 16, marginBottom: 12, maxWidth: '80%' },
-  userRow: { backgroundColor: '#0F172A', alignSelf: 'flex-end' },
-  assistantRow: { backgroundColor: '#FFF', alignSelf: 'flex-start', borderWidth: 1, borderColor: '#E2E8F0' }
+  imageBtn: { marginRight: 8, padding: 4 },
+  textInput: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 100 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+  messageRow: { padding: 12, borderRadius: 16, marginBottom: 12, maxWidth: '85%' },
+  userRow: { backgroundColor: '#0F172A', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  assistantRow: { backgroundColor: '#FFF', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#E2E8F0' },
+  bubbleImage: { width: 180, height: 130, borderRadius: 12, marginBottom: 6, resizeMode: 'cover' },
+  previewContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#FFF', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+  previewThumb: { width: 60, height: 60, borderRadius: 8 },
+  closePreview: { position: 'absolute', top: 4, left: 64 },
+  codeContainer: { backgroundColor: '#1E293B', borderRadius: 8, marginVertical: 6, padding: 10, width: '100%' },
+  codeHeader: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#334155', paddingBottom: 4, marginBottom: 6 },
+  codeLang: { color: '#94A3B8', fontSize: 12, fontWeight: 'bold' },
+  copyText: { color: '#38BDF8', fontSize: 12 },
+  codeText: { color: '#F1F5F9', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 13 }
 });
+    
