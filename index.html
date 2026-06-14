@@ -1,426 +1,192 @@
-import port React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Image, Modal,
-  Alert, ScrollView, Pressable, Animated, Easing, Linking,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import * as Clipboard from "expo-clipboard";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Modal, Alert, ScrollView, Pressable, Animated, Easing, Linking } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-type ModelKey = "claude" | "gemini";
-
-interface ChatMessage {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant";
-  text: string;
-  has_image?: boolean;
-  image_base64?: string | null;
-  model?: string;
-  created_at: string;
-}
-
-interface ConversationItem {
-  id: string;
-  title: string;
-  model: string;
-  updated_at: string;
-}
-
-const parseCodeBlocks = (text: string) => {
-  const parts: { type: "text" | "code"; content: string; lang?: string }[] = [];
-  const regex = /```(\w+)?\n?([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(text)) !== null) {
-    if (m.index > lastIndex) {
-      parts.push({ type: "text", content: text.slice(lastIndex, m.index) });
-    }
-    parts.push({ type: "code", content: m[2], lang: m[1] || "" });
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) parts.push({ type: "text", content: text.slice(lastIndex) });
-  if (parts.length === 0) parts.push({ type: "text", content: text });
-  return parts;
-};
-
-const formatInline = (s: string) => s.replace(/\*\*(.*?)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1");
-
-const CodeBlock: React.FC<{ code: string; lang?: string }> = ({ code, lang }) => {
-  const [copied, setCopied] = useState(false);
-  const onCopy = async () => {
-    await Clipboard.setStringAsync(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <View style={styles.codeBlock}>
-      <View style={styles.codeHeader}>
-        <Text style={styles.codeLang}>{lang || "code"}</Text>
-        <TouchableOpacity onPress={onCopy} style={styles.codeCopyBtn}>
-          <Ionicons name={copied ? "checkmark" : "copy-outline"} size={14} color="#E2E8F0" />
-          <Text style={styles.codeCopyText}>{copied ? "تم" : "نسخ"}</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <Text style={styles.codeText} selectable>{code}</Text>
-      </ScrollView>
-    </View>
-  );
-};
-
-const MessageBubble: React.FC<{ msg: ChatMessage; onCopy: (t: string) => void }> = ({ msg, onCopy }) => {
-  const isUser = msg.role === "user";
-  const parts = useMemo(() => parseCodeBlocks(msg.text), [msg.text]);
-  return (
-    <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAI]}>
-      {!isUser && (
-        <View style={styles.aiAvatar}>
-          <LinearGradient colors={["#A5B4FC", "#67E8F9"]} style={styles.aiAvatarInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Text style={styles.aiAvatarText}>A</Text>
-          </LinearGradient>
-        </View>
-      )}
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-        {msg.has_image && msg.image_base64 ? (
-          <Image source={{ uri: `data:image/jpeg;base64,${msg.image_base64}` }} style={styles.msgImage} />
-        ) : null}
-        {parts.map((p, i) =>
-          p.type === "code" ? (
-            <CodeBlock key={i} code={p.content} lang={p.lang} />
-          ) : (
-            <Text key={i} style={[styles.msgText, isUser ? styles.msgTextUser : styles.msgTextAI]} selectable>
-              {formatInline(p.content)}
-            </Text>
-          )
-        )}
-        {!isUser && (
-          <TouchableOpacity style={styles.copyBtn} onPress={() => onCopy(msg.text)}>
-            <Ionicons name="copy-outline" size={13} color="#475569" />
-            <Text style={styles.copyBtnText}>نسخ</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-};
-
-const TypingDots: React.FC = () => {
-  const a1 = useRef(new Animated.Value(0)).current;
-  const a2 = useRef(new Animated.Value(0)).current;
-  const a3 = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const make = (val: Animated.Value, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.timing(val, { toValue: 1, duration: 400, delay, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-        Animated.timing(val, { toValue: 0, duration: 400, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-      ]));
-    const l1 = make(a1, 0); const l2 = make(a2, 150); const l3 = make(a3, 300);
-    l1.start(); l2.start(); l3.start();
-    return () => { l1.stop(); l2.stop(); l3.stop(); };
-  }, [a1, a2, a3]);
-  const dot = (v: Animated.Value) => (
-    <Animated.View style={[styles.dot, { opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />
-  );
-  return (
-    <View style={[styles.msgRow, styles.msgRowAI]}>
-      <View style={styles.aiAvatar}>
-        <LinearGradient colors={["#A5B4FC", "#67E8F9"]} style={styles.aiAvatarInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={styles.aiAvatarText}>A</Text>
-        </LinearGradient>
-      </View>
-      <View style={[styles.bubble, styles.bubbleAI, { flexDirection: "row", gap: 4 }]}>
-        {dot(a1)}{dot(a2)}{dot(a3)}
-      </View>
-    </View>
-  );
-};
-
-const SUGGESTIONS = [
-  { icon: "code-slash-outline", title: "اكتب كود", subtitle: "دالة لفحص رقم أولي بـ Python" },
-  { icon: "image-outline", title: "حلل صورة", subtitle: "ارفع صورة واسأل عنها" },
-  { icon: "bulb-outline", title: "اشرح فكرة", subtitle: "ما الفرق بين REST و GraphQL؟" },
-  { icon: "language-outline", title: "ترجم نص", subtitle: "ترجم فقرة من العربية إلى الإنجليزية" },
-];
-
-export default function Index() {
+export default function App() {
   const insets = useSafeAreaInsets();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [input, setInput] = useState("");
-  const [model, setModel] = useState<ModelKey>("claude");
+  const [messages, setMessages] = useState([]);
+  const [conversationId, setConversationId] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [input, setInput] = useState('');
+  const [model, setModel] = useState('claude'); // الافتراضي هو كلاود
   const [sending, setSending] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
-  const flatRef = useRef<FlatList>(null);
+  const flatRef = useRef(null);
 
+  // دالة جلب المحادثات السابقة
   const loadConversations = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/conversations`);
-      const data = await r.json();
+      const res = await fetch(`${API}/conversations`);
+      const data = await res.json();
       setConversations(data || []);
-    } catch (e) { console.log("load conv err", e); }
+    } catch (e) {
+      console.log('Load conv error:', e);
+    }
   }, []);
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
 
-  const openConversation = async (id: string) => {
-    try {
-      const r = await fetch(`${API}/conversations/${id}`);
-      const data = await r.json();
-      setConversationId(id);
-      setMessages(data.messages || []);
-      setModel((data.conversation?.model as ModelKey) || "claude");
-      setDrawerOpen(false);
-      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 100);
-    } catch (e) { console.log(e); }
-  };
-
-  const newChat = () => {
-    setConversationId(null); setMessages([]); setPendingImage(null); setDrawerOpen(false);
-  };
-
-  const deleteConversation = async (id: string) => {
-    Alert.alert("حذف المحادثة", "هل تريد حذف هذه المحادثة؟", [
-      { text: "إلغاء", style: "cancel" },
-      { text: "حذف", style: "destructive", onPress: async () => {
-        await fetch(`${API}/conversations/${id}`, { method: "DELETE" });
-        if (id === conversationId) newChat();
-        loadConversations();
-      }},
-    ]);
-  };
-
-  const pickImage = async (fromCamera: boolean) => {
-    try {
-      let result;
-      if (fromCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          if (!perm.canAskAgain) {
-            Alert.alert("صلاحية الكاميرا", "افتح الإعدادات لتفعيل الكاميرا", [
-              { text: "إلغاء", style: "cancel" },
-              { text: "الإعدادات", onPress: () => Linking.openSettings() },
-            ]);
-          }
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.6, mediaTypes: ["images"] });
-      } else {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          if (!perm.canAskAgain) {
-            Alert.alert("صلاحية الصور", "افتح الإعدادات لتفعيل الوصول للصور", [
-              { text: "إلغاء", style: "cancel" },
-              { text: "الإعدادات", onPress: () => Linking.openSettings() },
-            ]);
-          }
-          return;
-        }
-        result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6, mediaTypes: ["images"] });
-      }
-      if (!result.canceled && result.assets && result.assets[0]?.base64) {
-        setPendingImage(result.assets[0].base64);
-      }
-    } catch (e) { console.log(e); }
-  };
-
+  // دالة إرسال الرسالة إلى الـ API ومخاطبة النموذج المختار
   const sendMessage = async () => {
+    if (!input.trim() || sending) return;
     const text = input.trim();
-    if (!text && !pendingImage) return;
-    if (sending) return;
-
-    const tempUser: ChatMessage = {
-      id: `tmp-${Date.now()}`,
-      conversation_id: conversationId || "tmp",
-      role: "user", text,
-      has_image: !!pendingImage,
-      image_base64: pendingImage,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempUser]);
-    setInput("");
-    const imgToSend = pendingImage;
-    setPendingImage(null);
+    setInput('');
     setSending(true);
+
+    const tempUserMsg = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: text,
+      created_at: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, tempUserMsg]);
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
 
     try {
-      const r = await fetch(`${API}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: conversationId, text, model, image_base64: imgToSend }),
+      const res = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          text: text,
+          model: model // يمرر التطبيق نوع النموذج المختار (claude أو gemini)
+        })
       });
-      if (!r.ok) { const err = await r.text(); throw new Error(err); }
-      const data = await r.json();
-      setConversationId(data.conversation_id);
-      setMessages((prev) => {
-        const filtered = prev.filter((m) => m.id !== tempUser.id);
-        return [...filtered, data.user_message, data.ai_message];
-      });
+
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      
+      if (!conversationId) setConversationId(data.conversation_id);
+      setMessages(data.messages || []);
       loadConversations();
+    } catch (e) {
+      Alert.alert('خطأ', 'تعذر إرسال الرسالة، تحقق من الـ API والاتصال');
+      console.log(e);
+    } finally {
+      setSending(false);
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
-    } catch (e: any) {
-      Alert.alert("خطأ", "تعذّر الإرسال. حاول مرة أخرى.\n" + (e?.message || ""));
-      setMessages((prev) => prev.filter((m) => m.id !== tempUser.id));
-    } finally { setSending(false); }
+    }
   };
 
-  const copyText = async (t: string) => { await Clipboard.setStringAsync(t); };
-  const renderItem = ({ item }: { item: ChatMessage }) => <MessageBubble msg={item} onCopy={copyText} />;
+  // المقتراحات السريعة الافتراضية للواجهة
+  const SUGGESTIONS = [
+    { icon: 'code-slash-outline', title: 'اكتب كود', subtitle: 'دالة فحص رقم أولي بـ Python' },
+    { icon: 'image-outline', title: 'حلل صورة', subtitle: 'ارفع صورة واسأل عنها' },
+    { icon: 'bulb-outline', title: 'اشرح فكرة', subtitle: 'ما الفرق بين REST و GraphQL' },
+    { icon: 'language-outline', title: 'ترجم نص', subtitle: 'ترجم فقرة من العربية إلى الإنجليزية' }
+  ];
 
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={["#E0EAF5", "#F0F4F8", "#F8FAFC"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      <View pointerEvents="none" style={[styles.blob, styles.blob1]} />
-      <View pointerEvents="none" style={[styles.blob, styles.blob2]} />
-      <View pointerEvents="none" style={[styles.blob, styles.blob3]} />
-
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <SafeAreaView style={[styles.root, { paddingTop: insets.top }]}>
+        
+        {/* شريط التحكم العلوي واختيار النماذج */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setDrawerOpen(true)}>
-            <Ionicons name="menu" size={22} color="#0F172A" />
+          <TouchableOpacity onPress={() => setDrawerOpen(true)}>
+            <Ionicons name="menu-outline" size={28} color="#0F172A" />
           </TouchableOpacity>
-          <View style={styles.titleWrap}>
-            <Text style={styles.titleText}>ahmad AI</Text>
-            <View style={styles.titleDot} />
-          </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={newChat}>
-            <Ionicons name="create-outline" size={22} color="#0F172A" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.modelSwitcher}>
-          <TouchableOpacity onPress={() => setModel("claude")} style={[styles.modelOption, model === "claude" && styles.modelOptionActive]}>
-            <View style={[styles.modelDot, { backgroundColor: "#D97757" }]} />
-            <Text style={[styles.modelLabel, model === "claude" && styles.modelLabelActive]}>Claude</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setModel("gemini")} style={[styles.modelOption, model === "gemini" && styles.modelOptionActive]}>
-            <View style={[styles.modelDot, { backgroundColor: "#1DA1F2" }]} />
-            <Text style={[styles.modelLabel, model === "gemini" && styles.modelLabelActive]}>Gemini</Text>
-          </TouchableOpacity>
-        </View>
-
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          {messages.length === 0 ? (
-            <ScrollView contentContainerStyle={styles.emptyWrap}>
-              <View style={styles.emptyAvatar}>
-                <LinearGradient colors={["#A5B4FC", "#67E8F9", "#FBCFE8"]} style={styles.emptyAvatarInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-              </View>
-              <Text style={styles.emptyTitle}>مرحباً بك في ahmad AI</Text>
-              <Text style={styles.emptySubtitle}>اسأل أي شيء — نصوص، برمجة، أو ارفع صورة لتحليلها</Text>
-              <View style={styles.suggestGrid}>
-                {SUGGESTIONS.map((s, i) => (
-                  <TouchableOpacity key={i} style={styles.suggestCard} onPress={() => setInput(s.subtitle)}>
-                    <Ionicons name={s.icon as any} size={18} color="#007AFF" />
-                    <Text style={styles.suggestTitle}>{s.title}</Text>
-                    <Text style={styles.suggestSubtitle}>{s.subtitle}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          ) : (
-            <FlatList
-              ref={flatRef} data={messages} keyExtractor={(m) => m.id} renderItem={renderItem}
-              contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12 }}
-              onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
-              ListFooterComponent={sending ? <TypingDots /> : null}
-            />
-          )}
-
-          <View style={[styles.inputWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-            {pendingImage ? (
-              <View style={styles.previewRow}>
-                <Image source={{ uri: `data:image/jpeg;base64,${pendingImage}` }} style={styles.previewImg} />
-                <TouchableOpacity style={styles.previewRemove} onPress={() => setPendingImage(null)}>
-                  <Ionicons name="close" size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            <View style={styles.inputBar}>
-              <TouchableOpacity style={styles.attachBtn} onPress={() => pickImage(false)}>
-                <Ionicons name="image-outline" size={20} color="#475569" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.attachBtn} onPress={() => pickImage(true)}>
-                <Ionicons name="camera-outline" size={20} color="#475569" />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.input} placeholder="اكتب رسالتك..." placeholderTextColor="#94A3B8"
-                value={input} onChangeText={setInput} multiline
-              />
-              <TouchableOpacity
-                onPress={sendMessage}
-                disabled={sending || (!input.trim() && !pendingImage)}
-                style={[styles.sendBtn, (sending || (!input.trim() && !pendingImage)) && styles.sendBtnDisabled]}
-              >
-                {sending ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="arrow-up" size={18} color="#fff" />}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-
-      <Modal visible={drawerOpen} transparent animationType="fade" onRequestClose={() => setDrawerOpen(false)}>
-        <Pressable style={styles.drawerBackdrop} onPress={() => setDrawerOpen(false)} />
-        <View style={[styles.drawer, { paddingTop: insets.top + 16 }]}>
-          <View style={styles.drawerHeader}>
-            <Text style={styles.drawerTitle}>المحادثات</Text>
-            <TouchableOpacity onPress={() => setDrawerOpen(false)}>
-              <Ionicons name="close" size={22} color="#0F172A" />
+          <Text style={styles.titleText}>ahmad AI</Text>
+          <View style={styles.modelSwitcher}>
+            <TouchableOpacity 
+              style={[styles.modelOption, model === 'claude' && styles.modelOptionActive]} 
+              onPress={() => setModel('claude')}
+            >
+              <Text style={styles.modelLabel}>Claude</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modelOption, model === 'gemini' && styles.modelOptionActive]} 
+              onPress={() => setModel('gemini')}
+            >
+              <Text style={styles.modelLabel}>Gemini</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.newChatBtn} onPress={newChat}>
-            <Ionicons name="add" size={18} color="#fff" />
-            <Text style={styles.newChatText}>محادثة جديدة</Text>
-          </TouchableOpacity>
-          <FlatList
-            data={conversations} keyExtractor={(c) => c.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.convItem, item.id === conversationId && styles.convItemActive]}
-                onPress={() => openConversation(item.id)} onLongPress={() => deleteConversation(item.id)}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#475569" />
-                <Text style={styles.convTitle} numberOfLines={1}>{item.title}</Text>
-                <TouchableOpacity onPress={() => deleteConversation(item.id)} hitSlop={8}>
-                  <Ionicons name="trash-outline" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={<Text style={styles.emptyConv}>لا توجد محادثات بعد</Text>}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          />
         </View>
-      </Modal>
-    </View>
+
+        {/* عرض الرسائل أو الشاشة الفارغة الافتراضية */}
+        {messages.length === 0 ? (
+          <ScrollView contentContainerStyle={styles.emptyContainer}>
+            <View style={styles.emptyAvatar}>
+              <LinearGradient colors={['#A7F3D0', '#C7D2FE']} style={styles.emptyAvatarInner}>
+                <Ionicons name="sparkles" size={40} color="#4F46E5" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.titleWrap}>اسأل أي شيء – نصوص، برمجيات، أو ارفع صورة ومستندات</Text>
+            
+            <View style={styles.suggestionsGrid}>
+              {SUGGESTIONS.map((item, idx) => (
+                <TouchableOpacity key={idx} style={styles.suggestionBox} onPress={() => setInput(item.subtitle)}>
+                  <Ionicons name={item.icon} size={24} color="#4F46E5" />
+                  <Text style={styles.suggestionTitle}>{item.title}</Text>
+                  <Text style={styles.suggestionSub}>{item.subtitle}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        ) : (
+          <FlatList
+            ref={flatRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={[styles.messageRow, item.role === 'user' ? styles.userRow : styles.assistantRow]}>
+                <Text style={styles.messageText}>{item.text}</Text>
+              </View>
+            )}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+          />
+        )}
+
+        {/* صندوق إدخال النص الزر السفلي */}
+        <View style={styles.inputBar}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="اسأل ahmad AI..."
+            value={input}
+            onChangeText={setInput}
+            multiline
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={sending}>
+            {sending ? <ActivityIndicator color="#FFF" /> : <Ionicons name="arrow-up" size={24} color="#FFF" />}
+          </TouchableOpacity>
+        </View>
+
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F0F4F8" },
-  blob: { position: "absolute", borderRadius: 999, opacity: 0.35 },
-  blob1: { width: 240, height: 240, backgroundColor: "#C7D2FE", top: -60, left: -60 },
-  blob2: { width: 280, height: 280, backgroundColor: "#A7F3D0", bottom: 120, right: -80 },
-  blob3: { width: 200, height: 200, backgroundColor: "#FBCFE8", top: 220, right: -40 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 10 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.7)", borderWidth: 1, borderColor: "rgba(255,255,255,1)", alignItems: "center", justifyContent: "center" },
-  titleWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-  titleText: { fontSize: 20, fontWeight: "700", color: "#0F172A", letterSpacing: -0.3 },
-  titleDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" },
-  modelSwitcher: { flexDirection: "row", alignSelf: "center", backgroundColor: "rgba(255,255,255,0.55)", borderRadius: 999, padding: 4, borderWidth: 1, borderColor: "rgba(255,255,255,1)", marginBottom: 8 },
-  modelOption: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999 },
-  modelOptionActive: { backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.06, shadowOffset: { width: 0, height: 1 }, shadowRadius: 2, elevation: 1 },
-  modelDot: { width: 8, height: 8, borderRadius: 4 },
-  modelLabel: { fontSize: 13, color: "#475569", fontWeight: "500" },
-  modelLabelActive: { color: "#0F172A", fontWeight: "600" },
-  emptyWrap: { alignItems: "center", paddingHorizontal: 24, paddingTop: 30, paddingBottom: 20 },
-  emptyAvatar: { width: 88, height: 88, borderRadius: 44, padding: 6, backgroundColor: "rgba(255,255,255,0.8)", borderWidth: 1, borderColor: "rgba(255,255,255,1)", marginBottom: 14 },
-  emptyAvatarInner: { flex:
-م
+  root: { flex: 1, backgroundColor: '#F0F4F8' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 60, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  titleText: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
+  modelSwitcher: { flexDirection: 'row', backgroundColor: '#E2E8F0', borderRadius: 20, padding: 2 },
+  modelOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 18 },
+  modelOptionActive: { backgroundColor: '#FFF', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  modelLabel: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  emptyContainer: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 20 },
+  emptyAvatar: { width: 88, height: 88, borderRadius: 44, padding: 6, backgroundColor: 'rgba(255,255,255,0.8)', marginBottom: 14 },
+  emptyAvatarInner: { flex: 1, borderRadius: 38, justifyContent: 'center', alignItems: 'center' },
+  titleWrap: { fontSize: 18, fontWeight: '600', textAlign: 'center', color: '#334155', marginBottom: 30 },
+  suggestionsGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  suggestionBox: { width: '48%', backgroundColor: '#FFF', padding: 16, borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' },
+  suggestionTitle: { fontSize: 14, fontWeight: '600', color: '#0F172A', marginTop: 8 },
+  suggestionSub: { fontSize: 12, color: '#64748B', marginTop: 4 },
+  inputBar: { flexDirection: 'row', alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0', backgroundColor: '#FFF' },
+  textInput: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, maxHeight: 100, fontSize: 15 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+  messageRow: { padding: 12, borderRadius: 16, marginBottom: 12, maxWidth: '80%' },
+  userRow: { backgroundColor: '#4F46E5', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  assistantRow: { backgroundColor: '#FFF', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#E2E8F0' },
+  messageText: { fontSize: 15, color: '#0F172A' }
+});
+              
